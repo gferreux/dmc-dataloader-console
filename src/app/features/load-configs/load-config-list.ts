@@ -7,13 +7,11 @@ import { MatFormField, MatLabel, MatPrefix } from '@angular/material/form-field'
 import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
-import { MatSlideToggle, MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { RouterLink } from '@angular/router';
 import { Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
 
 import { toApiException } from '../../core/api/api-error';
 import { LOAD_CONFIG_API } from '../../core/api/load-config-api';
-import { toWriteModelFromConfig } from '../../core/forms/load-config-form';
 import { ImportType, ListQuery, LoadConfig, Meta } from '../../core/models/load-config.model';
 import { destinationLabel } from '../../core/utils/derive';
 import { Notify } from '../../core/notify/notify.service';
@@ -33,7 +31,6 @@ import { DeleteConfigDialog, DeleteDialogResult } from './delete-config-dialog';
     MatInput,
     MatSelect,
     MatOption,
-    MatSlideToggle,
   ],
   templateUrl: './load-config-list.html',
   styleUrl: './load-config-list.scss',
@@ -47,7 +44,6 @@ export class LoadConfigList {
   readonly filters = inject(FormBuilder).nonNullable.group({
     partnerType: '',
     importType: '',
-    status: 'active',
     q: '',
   });
 
@@ -55,7 +51,6 @@ export class LoadConfigList {
   readonly items = signal<LoadConfig[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  readonly savingId = signal<string | null>(null);
 
   constructor() {
     this.refresh$
@@ -71,7 +66,7 @@ export class LoadConfigList {
         takeUntilDestroyed(),
       )
       .subscribe((response) => {
-        this.items.set(this.applyStatus(response.items));
+        this.items.set(response.items);
         this.loading.set(false);
       });
 
@@ -114,22 +109,12 @@ export class LoadConfigList {
     return destinationLabel(config);
   }
 
-  setActive(row: LoadConfig, event: MatSlideToggleChange): void {
-    this.updateActive(row, event.checked, () => {
-      event.source.checked = !row.deactivated;
-    });
-  }
-
   confirmDelete(row: LoadConfig): void {
     const ref = this.dialog.open(DeleteConfigDialog, {
       width: '480px',
-      data: { id: row.id, publisherName: row.publisherName, deactivated: row.deactivated },
+      data: { id: row.id, publisherName: row.publisherName },
     });
     ref.afterClosed().subscribe((result: DeleteDialogResult) => {
-      if (result === 'deactivate') {
-        this.updateActive(row, false);
-        return;
-      }
       if (result === 'delete') {
         this.api.delete(row.id).subscribe({
           next: () => {
@@ -142,42 +127,12 @@ export class LoadConfigList {
     });
   }
 
-  private updateActive(row: LoadConfig, active: boolean, revert?: () => void): void {
-    this.savingId.set(row.id);
-    const write = toWriteModelFromConfig(row);
-    write.deactivated = !active;
-    this.api.update(row.id, write).subscribe({
-      next: (updated) => {
-        this.savingId.set(null);
-        this.notify.success(updated.deactivated ? 'Config deactivated' : 'Config activated');
-        this.refresh();
-      },
-      error: (error) => {
-        this.savingId.set(null);
-        this.notify.error(toApiException(error).message);
-        revert?.();
-      },
-    });
-  }
-
   private query(): ListQuery {
     const value = this.filters.getRawValue();
     return {
       partnerType: value.partnerType || undefined,
       importType: value.importType || undefined,
       q: value.q.trim() || undefined,
-      includeDeactivated: value.status !== 'active',
     };
-  }
-
-  private applyStatus(items: LoadConfig[]): LoadConfig[] {
-    const status = this.filters.controls.status.value;
-    if (status === 'deactivated') {
-      return items.filter((item) => item.deactivated);
-    }
-    if (status === 'active') {
-      return items.filter((item) => !item.deactivated);
-    }
-    return items;
   }
 }

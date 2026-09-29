@@ -4,12 +4,8 @@
   <p>
     Delete <strong class="mono">{{ data.id }}</strong> ({{ data.publisherName }})? This cannot be undone.
   </p>
-  <p class="muted">Deactivating the config keeps it in place and stops the loader from using it.</p>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button matButton="outlined" type="button" (click)="close()">Cancel</button>
-  @if (!data.deactivated) {
-    <button matButton="outlined" type="button" (click)="close('deactivate')">Deactivate instead</button>
-  }
   <button matButton="filled" class="danger" type="button" (click)="close('delete')">Delete</button>
 </mat-dialog-actions>

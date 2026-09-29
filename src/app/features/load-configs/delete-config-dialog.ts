@@ -6,10 +6,9 @@ import { MatIcon } from '@angular/material/icon';
 export interface DeleteDialogData {
   id: string;
   publisherName: string;
-  deactivated: boolean;
 }
 
-export type DeleteDialogResult = 'delete' | 'deactivate' | undefined;
+export type DeleteDialogResult = 'delete' | undefined;
 
 @Component({
   selector: 'dmc-delete-config-dialog',

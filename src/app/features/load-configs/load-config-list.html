@@ -26,14 +26,6 @@
         }
       </mat-select>
     </mat-form-field>
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-      <mat-label>State</mat-label>
-      <mat-select [formControl]="filters.controls.status">
-        <mat-option value="active">Active</mat-option>
-        <mat-option value="deactivated">Deactivated</mat-option>
-        <mat-option value="all">All</mat-option>
-      </mat-select>
-    </mat-form-field>
     <mat-form-field appearance="outline" class="search" subscriptSizing="dynamic">
       <mat-label>Search</mat-label>
       <input matInput [formControl]="filters.controls.q" placeholder="Id, partner or table" />
@@ -61,7 +53,6 @@
               <th scope="col">Import</th>
               <th scope="col">Destination</th>
               <th scope="col">Mode</th>
-              <th scope="col">Active</th>
               <th scope="col"><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
@@ -80,14 +71,6 @@
                   {{ row.destination.datasetId }}.{{ row.destination.tableId }}
                 </td>
                 <td>{{ row.mode }}</td>
-                <td>
-                  <mat-slide-toggle
-                    [checked]="!row.deactivated"
-                    [disabled]="savingId() === row.id"
-                    [aria-label]="'Active state for ' + row.id"
-                    (change)="setActive(row, $event)"
-                  />
-                </td>
                 <td class="row-actions">
                   <a matButton="text" [routerLink]="['/load-configs', row.id]">Edit</a>
                   <button matIconButton type="button" [attr.aria-label]="'Delete ' + row.id" (click)="confirmDelete(row)">

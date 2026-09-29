@@ -9,8 +9,7 @@ import { MatInput } from '@angular/material/input';
 import { MatTooltip } from '@angular/material/tooltip';
 
 import { createMappingGroup, MappingFormGroup } from '../../core/forms/load-config-form';
-import { MappingTypeOption } from '../../core/models/load-config.model';
-import { BQ_TYPE_CODE } from '../../core/api/mock/catalog';
+import { MAPPING_TYPE_RENAME, MappingTypeOption } from '../../core/models/load-config.model';
 import { HeaderSuggestion, suggestHeaderMatches } from '../../core/utils/header-match';
 
 @Component({
@@ -52,8 +51,12 @@ export class MappingEditor {
     });
   }
 
+  knownType(value: number): boolean {
+    return this.mappingTypes().some((type) => type.value === value);
+  }
+
   addRow(): void {
-    this.mappings().push(createMappingGroup({ type: BQ_TYPE_CODE['STRING'] }));
+    this.mappings().push(createMappingGroup({ type: MAPPING_TYPE_RENAME }));
   }
 
   remove(index: number): void {

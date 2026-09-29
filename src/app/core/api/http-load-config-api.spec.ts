@@ -24,10 +24,10 @@ describe('HttpLoadConfigApi', () => {
   it('lists with the contract query string and encodes ids', async () => {
     const { api, http } = setup();
     const pending = firstValueFrom(
-      api.list({ partnerType: 'publisher', q: 'demo', includeDeactivated: false }),
+      api.list({ partnerType: 'publisher', q: 'demo' }),
     );
     const request = http.expectOne(
-      'http://api.test/api/v1/load-configs?includeDeactivated=false&partnerType=publisher&q=demo',
+      'http://api.test/api/v1/load-configs?partnerType=publisher&q=demo',
     );
     request.flush({ items: [FIXTURES[0]] });
     const body = await pending;
@@ -50,6 +50,17 @@ describe('HttpLoadConfigApi', () => {
     expect(request.request.method).toBe('POST');
     expect(request.request.body.bqParams.fieldDelimiter).toBe('\t');
     expect(JSON.stringify(request.request.body.bqParams)).toContain('\\t');
+    expect(request.request.body.bqParams.sourceFormat).toBe(0);
+    expect(request.request.body.bqParams.nullMarker).toBeNull();
+    expect(request.request.body.organization).toEqual({
+      id: 'org_sample_brand',
+      account: null,
+      type: 'referential',
+    });
+    const json = JSON.stringify(request.request.body);
+    expect(json).not.toContain('deactivated');
+    expect(json).not.toContain('isPartitionKey');
+    expect(json).not.toContain('partnerType');
     request.flush({ errors: [], warnings: [] });
     await pending;
     http.verify();

@@ -1,13 +1,11 @@
 import { Component, computed, effect, input, signal } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButton } from '@angular/material/button';
-import { MatCheckbox } from '@angular/material/checkbox';
 import { MatFormField, MatHint, MatLabel, MatError } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { MatOption, MatSelect, MatSelectChange } from '@angular/material/select';
-import { MatSlideToggle } from '@angular/material/slide-toggle';
 
-import { LoadConfigForm, suggestConfigId } from '../../core/forms/load-config-form';
+import { LoadConfigForm, organizationTypeOptions, suggestConfigId } from '../../core/forms/load-config-form';
 import { Meta } from '../../core/models/load-config.model';
 import { CUSTOM_DELIMITER, DELIMITER_PRESETS, TAB_DELIMITER, delimiterPreset } from '../../core/utils/delimiter';
 import { MappingEditor } from './mapping-editor';
@@ -24,8 +22,6 @@ import { PatternTester } from './pattern-tester';
     MatInput,
     MatSelect,
     MatOption,
-    MatCheckbox,
-    MatSlideToggle,
     MatButton,
     MappingEditor,
     PatternTester,
@@ -76,6 +72,15 @@ export class ConfigForm {
 
   setCustomDelimiter(value: string): void {
     this.form().controls.fieldDelimiter.setValue(value);
+  }
+
+  organizationTypes(): string[] {
+    return organizationTypeOptions(this.form().controls.organizationType.value);
+  }
+
+  legacyOrganizationType(): boolean {
+    const value = this.form().controls.organizationType.value;
+    return Boolean(value) && value !== 'advertiser' && value !== 'publisher';
   }
 
   suggestId(): void {

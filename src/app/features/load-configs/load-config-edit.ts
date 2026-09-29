@@ -88,7 +88,7 @@ export class LoadConfigEdit {
             this.current.set(updated);
             this.saving.set(false);
             this.validation.set({ errors: [], warnings: [] });
-            this.notify.success(updated.deactivated ? 'Config saved and deactivated' : 'Config saved');
+            this.notify.success('Config saved');
           },
           error: (error) => {
             this.saving.set(false);
@@ -110,14 +110,9 @@ export class LoadConfigEdit {
     }
     const ref = this.dialog.open(DeleteConfigDialog, {
       width: '480px',
-      data: { id: current.id, publisherName: current.publisherName, deactivated: current.deactivated },
+      data: { id: current.id, publisherName: current.publisherName },
     });
     ref.afterClosed().subscribe((result: DeleteDialogResult) => {
-      if (result === 'deactivate') {
-        this.form()?.controls.deactivated.setValue(true);
-        this.save(true);
-        return;
-      }
       if (result === 'delete') {
         this.api.delete(current.id).subscribe({
           next: () => {

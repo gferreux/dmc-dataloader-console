@@ -27,9 +27,6 @@ export class MockLoadConfigApi implements LoadConfigApi {
 
   list(query: ListQuery): Observable<ListResponse> {
     let items = this.configs.map((item) => withDerived(structuredClone(item)));
-    if (!query.includeDeactivated) {
-      items = items.filter((item) => !item.deactivated);
-    }
     if (query.partnerType) {
       items = items.filter((item) => item.partnerType === query.partnerType);
     }
@@ -48,6 +45,7 @@ export class MockLoadConfigApi implements LoadConfigApi {
         );
       });
     }
+    items.sort((left, right) => left.id.localeCompare(right.id));
     return of({ items });
   }
 
@@ -106,18 +104,23 @@ export class MockLoadConfigApi implements LoadConfigApi {
   }
 
   testPattern(body: TestPatternRequest): Observable<TestPatternResult> {
+    const pattern = body.pattern?.trim() ?? '';
+    if (!pattern) {
+      return this.fail(422, 'validation_error', 'pattern is required');
+    }
     let matches = false;
     try {
-      matches = new RegExp(body.pattern).test(body.path);
+      matches = new RegExp(pattern).test(body.path);
     } catch {
-      return this.fail(422, 'invalid_pattern', 'Pattern is not a valid regular expression.');
+      return this.fail(422, 'validation_error', 'pattern is not a valid regex');
     }
-    const matching = this.configs.find((item) => {
-      if (item.deactivated) {
-        return false;
-      }
-      return matchesPattern(item.patterns.ingest, body.path) || matchesPattern(item.patterns.preprocess, body.path);
-    });
+    const matching = [...this.configs]
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .find(
+        (item) =>
+          matchesPattern(item.patterns.ingest, body.path) ||
+          matchesPattern(item.patterns.preprocess, body.path),
+      );
     return of({ matches, matchingConfigId: matching?.id ?? null });
   }
 
@@ -130,7 +133,7 @@ export class MockLoadConfigApi implements LoadConfigApi {
   }
 
   private validationFor(body: LoadConfigWrite): ValidationResult {
-    return validateConfig(body, this.configs, META, TEMPLATES);
+    return validateConfig(body, this.configs, META);
   }
 
   private fail(status: number, code: string, message: string, details?: unknown): Observable<never> {

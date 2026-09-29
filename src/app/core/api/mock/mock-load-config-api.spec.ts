@@ -10,36 +10,45 @@ describe('MockLoadConfigApi', () => {
     return new MockLoadConfigApi();
   }
 
-  it('accepts every sanitized fixture', async () => {
+  it('accepts writable fixtures and reports a legacy organization type', async () => {
     const client = api();
     for (const fixture of FIXTURES) {
       const result = await firstValueFrom(client.validate(fixture));
-      expect(result.errors).toEqual([]);
+      if (fixture.organization.type === 'referential') {
+        expect(result.errors.map((issue) => issue.field)).toEqual(['organization.type']);
+      } else {
+        expect(result.errors).toEqual([]);
+      }
     }
   });
 
-  it('filters by partner, import type, text and active state', async () => {
-    const active = await firstValueFrom(api().list({ includeDeactivated: false }));
-    expect(active.items.map((item) => item.id)).not.toContain('sample_brand:sample:stores');
-    expect(active.items.every((item) => item.partnerType && item.importType)).toBe(true);
+  it('filters by partner, import type and text, in document id order', async () => {
+    const all = await firstValueFrom(api().list({}));
+    expect(all.items.map((item) => item.id)).toContain('sample_brand:sample:stores');
+    expect(all.items.every((item) => item.partnerType && item.importType)).toBe(true);
+    const ids = all.items.map((item) => item.id);
+    expect(ids).toEqual([...ids].sort((left, right) => left.localeCompare(right)));
 
-    const advertisers = await firstValueFrom(
-      api().list({ partnerType: 'advertiser', includeDeactivated: true }),
-    );
+    const advertisers = await firstValueFrom(api().list({ partnerType: 'advertiser' }));
     expect(advertisers.items.every((item) => item.partnerType === 'advertiser')).toBe(true);
 
-    const sales = await firstValueFrom(api().list({ importType: 'sales', includeDeactivated: true }));
+    const sales = await firstValueFrom(api().list({ importType: 'sales' }));
     expect(sales.items.map((item) => item.id)).toEqual(['sample_brand:sample:sales']);
 
-    const search = await firstValueFrom(api().list({ q: 'profiles', includeDeactivated: true }));
+    const search = await firstValueFrom(api().list({ q: 'profiles' }));
     expect(search.items.map((item) => item.id)).toEqual(['demo_retail:demo:optin']);
   });
 
-  it('keeps a real tab delimiter on the stores fixture', async () => {
+  it('keeps a real tab, a null marker, and a legacy organization type on stores', async () => {
     const stores = await firstValueFrom(api().get('sample_brand:sample:stores'));
     expect(stores.bqParams.fieldDelimiter).toBe(TAB_DELIMITER);
     expect(stores.bqParams.fieldDelimiter).not.toBe('\\t');
-    expect(stores.deactivated).toBe(true);
+    expect(stores.bqParams.nullMarker).toBeNull();
+    expect(stores.bqParams.sourceFormat).toBe(0);
+    expect(stores.organization.type).toBe('referential');
+    expect(stores.organization.account).toBeNull();
+    expect(stores.partnerType).toBe('advertiser');
+    expect(stores.importType).toBe('stores');
   });
 
   it('returns 409 when the id already exists and 422 when validation fails', async () => {
@@ -52,7 +61,7 @@ describe('MockLoadConfigApi', () => {
 
     const invalid = structuredClone(existing);
     invalid.id = 'new_partner:new:optin';
-    invalid.bqParams.fieldDelimiter = '\\t';
+    invalid.bqParams.sourceFormat = 7;
     await expect(firstValueFrom(client.create(invalid))).rejects.toMatchObject({ status: 422 });
   });
 
@@ -83,11 +92,9 @@ describe('MockLoadConfigApi', () => {
     expect(result.matchingConfigId).toBe('demo_retail:demo:optin');
   });
 
-  it('deletes a config and updates the deactivated flag', async () => {
+  it('deletes a config', async () => {
     const client = api();
     const current = await firstValueFrom(client.get('demo_retail:demo:optout'));
-    const updated = await firstValueFrom(client.update(current.id, { ...current, deactivated: true }));
-    expect(updated.deactivated).toBe(true);
     await firstValueFrom(client.delete(current.id));
     await expect(firstValueFrom(client.get(current.id))).rejects.toMatchObject({ status: 404 });
   });

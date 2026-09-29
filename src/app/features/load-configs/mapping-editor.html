@@ -49,9 +49,8 @@
           <th scope="col"><span class="sr-only">Reorder</span></th>
           <th scope="col">Target column</th>
           <th scope="col">Source</th>
-          <th scope="col">Type</th>
+          <th scope="col"><span matTooltip="How the loader reads the source. This is not the BigQuery column type.">Type</span></th>
           <th scope="col"><span matTooltip="Primary key">PK</span></th>
-          <th scope="col"><span matTooltip="Partition key">Partition</span></th>
           <th scope="col"><span matTooltip="Use in the delete filter">Delete</span></th>
           <th scope="col"><span matTooltip="Required partition filter">Filter</span></th>
           <th scope="col"><span class="sr-only">Actions</span></th>
@@ -73,6 +72,9 @@
             <td>
               <div class="column-name">
                 <input class="bare" [formControl]="row.controls.column" aria-label="Target column name" />
+                @if (row.controls.bqType.value) {
+                  <span class="bq-type">{{ row.controls.bqType.value }}</span>
+                }
                 @if (row.controls.required.value) {
                   <span class="required">Required</span>
                 }
@@ -88,20 +90,17 @@
               }
             </td>
             <td>
-              <select class="bare" [formControl]="row.controls.type" aria-label="BigQuery type">
+              <select class="bare" [formControl]="row.controls.type" aria-label="Mapping type">
                 @for (type of mappingTypes(); track type.value) {
                   <option [ngValue]="type.value">{{ type.label }}</option>
+                }
+                @if (!knownType(row.controls.type.value)) {
+                  <option [ngValue]="row.controls.type.value">Unknown ({{ row.controls.type.value }})</option>
                 }
               </select>
             </td>
             <td>
               <mat-checkbox [formControl]="row.controls.primaryKey" [aria-label]="'Primary key for ' + row.controls.column.value" />
-            </td>
-            <td>
-              <mat-checkbox
-                [formControl]="row.controls.isPartitionKey"
-                [aria-label]="'Partition key for ' + row.controls.column.value"
-              />
             </td>
             <td>
               <mat-checkbox

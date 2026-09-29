@@ -2,6 +2,10 @@ export type LoadMode = 'APPEND' | 'INCREMENTAL' | 'OVERWRITE';
 export type PartnerType = 'publisher' | 'advertiser';
 export type ImportType = 'optin' | 'optout' | 'blacklists' | 'customers' | 'stores' | 'sales';
 
+/** Domain mapping type from dmc-dataloader-api. Not a BigQuery column type. */
+export const MAPPING_TYPE_RENAME = 0;
+export const MAPPING_TYPE_SQL = 1;
+
 export interface Patterns {
   preprocess: string;
   ingest: string;
@@ -15,7 +19,7 @@ export interface Destination {
 
 export interface Organization {
   id: string;
-  account: string;
+  account: string | null;
   type: string;
 }
 
@@ -27,16 +31,16 @@ export interface Notification {
 export interface BqParams {
   fieldDelimiter: string;
   skipLeadingRows: number;
-  nullMarker: string;
+  nullMarker: string | null;
   quote: string;
-  sourceFormat: string;
+  /** 0 is CSV. 1 is JSON. */
+  sourceFormat: number;
 }
 
 export interface ColumnMapping {
   src: string;
   type: number;
   primaryKey?: boolean;
-  isPartitionKey?: boolean;
   useInDeleteFilter?: boolean;
   isRequiredPartitionFilter?: boolean;
 }
@@ -45,8 +49,6 @@ export interface LoadConfig {
   id: string;
   publisherName: string;
   mode: LoadMode;
-  deactivated: boolean;
-  incremental?: boolean;
   patterns: Patterns;
   destination: Destination;
   organization: Organization;
@@ -59,7 +61,7 @@ export interface LoadConfig {
   importType?: ImportType;
 }
 
-/** Body sent to POST and PUT. Derived and audit fields stay server-owned. */
+/** Body sent to POST, PUT, and validate. Read-only and derived fields stay off the wire. */
 export type LoadConfigWrite = Omit<
   LoadConfig,
   'createTime' | 'updateTime' | 'partnerType' | 'importType'
@@ -69,7 +71,6 @@ export interface ListQuery {
   partnerType?: string;
   importType?: string;
   q?: string;
-  includeDeactivated?: boolean;
 }
 
 export interface FieldMessage {
@@ -100,21 +101,12 @@ export interface TemplateColumn {
   formatHint?: string;
 }
 
-export interface TemplateDefaults {
-  mode: LoadMode;
-  destination: Destination;
-  bqParams: BqParams;
-  patterns: Patterns;
-  notification: Notification;
-  organization: Pick<Organization, 'type'>;
-}
-
 export interface ImportTemplate {
   partnerType: PartnerType;
   importType: ImportType;
   label: string;
   columns: TemplateColumn[];
-  defaults: TemplateDefaults;
+  defaults: LoadConfigWrite;
 }
 
 export interface MappingTypeOption {
@@ -122,10 +114,15 @@ export interface MappingTypeOption {
   label: string;
 }
 
+export interface SourceFormatOption {
+  value: number;
+  label: string;
+}
+
 export interface Meta {
   modes: LoadMode[];
   mappingTypes: MappingTypeOption[];
-  sourceFormats: string[];
+  sourceFormats: SourceFormatOption[];
   partnerTypes: PartnerType[];
   importTypes: Record<PartnerType, ImportType[]>;
 }

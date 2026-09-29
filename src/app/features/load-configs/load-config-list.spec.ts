@@ -24,13 +24,13 @@ describe('LoadConfigList', () => {
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
 
-  it('lists active configs and filters by partner', async () => {
+  it('lists configs, including a legacy organization type, and filters by partner', async () => {
     const fixture = TestBed.createComponent(LoadConfigList);
     await fixture.whenStable();
     const text = () => (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text()).toContain('demo_retail:demo:optin');
     expect(text()).toContain('sample_brand:sample:sales');
-    expect(text()).not.toContain('sample_brand:sample:stores');
+    expect(text()).toContain('sample_brand:sample:stores');
 
     fixture.componentInstance.filters.controls.partnerType.setValue('advertiser');
     await settle();

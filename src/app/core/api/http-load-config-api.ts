@@ -24,7 +24,7 @@ export class HttpLoadConfigApi implements LoadConfigApi {
   ) {}
 
   list(query: ListQuery): Observable<ListResponse> {
-    let params = new HttpParams().set('includeDeactivated', String(Boolean(query.includeDeactivated)));
+    let params = new HttpParams();
     if (query.partnerType) {
       params = params.set('partnerType', query.partnerType);
     }
@@ -48,7 +48,7 @@ export class HttpLoadConfigApi implements LoadConfigApi {
   }
 
   create(body: LoadConfigWrite): Observable<LoadConfig> {
-    return this.http.post<LoadConfig>(this.url('/api/v1/load-configs'), body).pipe(
+    return this.http.post<LoadConfig>(this.url('/api/v1/load-configs'), toRequestBody(body)).pipe(
       map((config) => withDerived(config)),
       catchError((error) => throwError(() => toApiException(error))),
     );
@@ -56,7 +56,7 @@ export class HttpLoadConfigApi implements LoadConfigApi {
 
   update(id: string, body: LoadConfigWrite): Observable<LoadConfig> {
     return this.http
-      .put<LoadConfig>(this.url(`/api/v1/load-configs/${encodeURIComponent(id)}`), body)
+      .put<LoadConfig>(this.url(`/api/v1/load-configs/${encodeURIComponent(id)}`), toRequestBody(body))
       .pipe(
         map((config) => withDerived(config)),
         catchError((error) => throwError(() => toApiException(error))),
@@ -77,7 +77,7 @@ export class HttpLoadConfigApi implements LoadConfigApi {
 
   validate(body: LoadConfigWrite): Observable<ValidationResult> {
     return this.http
-      .post<ValidationResult>(this.url('/api/v1/load-configs/validate'), body)
+      .post<ValidationResult>(this.url('/api/v1/load-configs/validate'), toRequestBody(body))
       .pipe(catchError((error) => throwError(() => toApiException(error))));
   }
 
@@ -102,4 +102,45 @@ export class HttpLoadConfigApi implements LoadConfigApi {
   private url(path: string): string {
     return `${this.config.apiBaseUrl.replace(/\/$/, '')}${path}`;
   }
+}
+
+/** Keeps the JSON body inside the OpenAPI LoadConfig schema. Unknown fields are HTTP 400. */
+function toRequestBody(body: LoadConfigWrite): LoadConfigWrite {
+  const mappings: LoadConfigWrite['mappings'] = {};
+  for (const [name, mapping] of Object.entries(body.mappings ?? {})) {
+    mappings[name] = {
+      src: mapping.src,
+      type: mapping.type,
+      primaryKey: mapping.primaryKey,
+      useInDeleteFilter: mapping.useInDeleteFilter,
+      isRequiredPartitionFilter: mapping.isRequiredPartitionFilter,
+    };
+  }
+  return {
+    id: body.id,
+    publisherName: body.publisherName,
+    mode: body.mode,
+    patterns: {
+      preprocess: body.patterns?.preprocess ?? '',
+      ingest: body.patterns?.ingest ?? '',
+    },
+    destination: { ...body.destination },
+    organization: {
+      id: body.organization?.id ?? '',
+      account: body.organization?.account ?? null,
+      type: body.organization?.type ?? '',
+    },
+    notification: {
+      projectId: body.notification?.projectId ?? '',
+      topicId: body.notification?.topicId ?? '',
+    },
+    bqParams: {
+      fieldDelimiter: body.bqParams?.fieldDelimiter ?? '',
+      skipLeadingRows: body.bqParams?.skipLeadingRows ?? 0,
+      nullMarker: body.bqParams?.nullMarker ?? null,
+      quote: body.bqParams?.quote ?? '',
+      sourceFormat: body.bqParams?.sourceFormat,
+    },
+    mappings,
+  };
 }

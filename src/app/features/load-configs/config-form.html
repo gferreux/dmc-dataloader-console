@@ -36,8 +36,6 @@
         </mat-select>
       </mat-form-field>
       <div class="flags">
-        <mat-slide-toggle formControlName="deactivated">Deactivated</mat-slide-toggle>
-        <mat-checkbox formControlName="incremental">Incremental</mat-checkbox>
         @if (!lockId()) {
           <button matButton="outlined" type="button" (click)="suggestId()">Suggest id</button>
         }
@@ -77,10 +75,18 @@
       <mat-form-field appearance="outline">
         <mat-label>Account</mat-label>
         <input matInput formControlName="organizationAccount" autocomplete="off" />
+        <mat-hint>Optional. An empty account is stored as null.</mat-hint>
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Organization type</mat-label>
-        <input matInput formControlName="organizationType" autocomplete="off" />
+        <mat-select formControlName="organizationType">
+          @for (type of organizationTypes(); track type) {
+            <mat-option [value]="type">{{ type }}</mat-option>
+          }
+        </mat-select>
+        @if (legacyOrganizationType()) {
+          <mat-hint>Legacy value. Choose advertiser or publisher before saving.</mat-hint>
+        }
       </mat-form-field>
     </div>
   </section>
@@ -97,6 +103,9 @@
         <textarea matInput rows="2" formControlName="ingest"></textarea>
       </mat-form-field>
     </div>
+    @if (form().hasError('pattern')) {
+      <p class="banner" role="alert">Enter a preprocess regex, an ingest regex, or both.</p>
+    }
     <dmc-pattern-tester [ingest]="form().controls.ingest" [preprocess]="form().controls.preprocess" />
   </section>
 
@@ -138,12 +147,13 @@
       <mat-form-field appearance="outline">
         <mat-label>Null marker</mat-label>
         <input matInput formControlName="nullMarker" autocomplete="off" />
+        <mat-hint>Optional. An empty marker is stored as null.</mat-hint>
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Source format</mat-label>
         <mat-select formControlName="sourceFormat">
-          @for (format of meta().sourceFormats; track format) {
-            <mat-option [value]="format">{{ format }}</mat-option>
+          @for (format of meta().sourceFormats; track format.value) {
+            <mat-option [value]="format.value">{{ format.label }}</mat-option>
           }
         </mat-select>
       </mat-form-field>

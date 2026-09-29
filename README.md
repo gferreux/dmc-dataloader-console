@@ -4,7 +4,7 @@ Angular console for Greg's team to add, edit and delete `dmc-data-loader` import
 
 The visual language follows [dmc-console-core](https://github.com/gferreux/dmc-console-core): Sora and Inter, brand violet `#706ef5`, the gray scale, and a dark sidenav with a white top bar. This repo is a standalone Angular app rather than an Nx library inside that monorepo.
 
-The API is [dmc-dataloader-api](https://github.com/gferreux/dmc-dataloader-api). That repo does not publish an OpenAPI document yet, so this UI follows the REST contract described in the project brief. Assumptions are listed at the bottom.
+The API is [dmc-dataloader-api](https://github.com/gferreux/dmc-dataloader-api). The client follows `api/openapi.yaml` in that repo. Assumptions that the spec leaves open are listed at the bottom.
 
 ## Prerequisites
 
@@ -89,25 +89,24 @@ IAP and the Artifact Registry repository are configured outside this file. Do no
 
 ## Contract assumptions
 
-- `GET /api/v1/meta` mapping type integers are `1 STRING`, `2 INTEGER`, `3 FLOAT`, `4 BOOLEAN`, `5 DATE`, `6 TIMESTAMP`, `7 NUMERIC`, `8 BYTES` until the API publishes the real list. The UI labels types from that payload.
-- `partnerType` and `importType` are derived, not stored. The client prefers values the API returns. If they are missing it infers partner from `publishers` / `advertisers` in the dataset id, and import type from the table id. Table `profiles` is treated as `optin`.
-- Create and update bodies omit `createTime`, `updateTime`, `partnerType` and `importType`.
-- List responses are full config documents, so the active toggle can `PUT` the row it is showing.
-- `includeDeactivated=false` returns active configs. Deactivated-only is done by requesting deactivated rows and filtering client-side, because the contract has no status enum.
-- Config ids are path-encoded (`demo_retail%3Ademo%3Aoptin`).
-- `DELETE` returns 204 with an empty body. The client uses a text response so it does not try to parse JSON.
-- `POST /load-configs/validate` returns 200 with `{errors, warnings}`. Errors block save. Warnings need an explicit Save anyway. The mock also warns when a regex is not anchored with both `^` and `$`, and when another active config shares the ingest pattern or destination table.
-- `POST /load-configs/test-pattern` sets `matches` from the submitted pattern. `matchingConfigId` is the first non-deactivated config whose ingest or preprocess pattern matches the path, in list order. Which of the two patterns the loader actually uses is an open question.
-- Mapping order is the order of keys in the JSON object. A Go `map` or Firestore map may not preserve it.
-- Template columns without an explicit type are STRING. `country` with hint "Default FR" is prefilled with the SQL literal `'FR'`. A required marker applies only to the column it is written next to (`mobile_phone`, `optin_sms`, `collect_date`, `collect_url`, and the sales/stores columns called out as required).
-- Organization, notification and both patterns are required by the form and the mock validator. The real API may treat some of them as optional.
-- Field delimiter Tab is the single character U+0009. The two-character text `\t` is rejected.
-- Unspecified BQ types on template columns stay STRING. Illustrative primary-key and partition flags on the fixtures are not a statement of loader rules.
+Aligned with `dmc-dataloader-api` `api/openapi.yaml`:
+
+- Mapping `type` is the domain iota: `0 RENAME`, `1 SQL`, `2 PREFIX_PATTERN`, `3 CUSTOM`, `4 EXTRA_FIELDS`, `5 MISSING_MAPPINGS`, `6 ARRAY`. Labels come from `/meta`. BigQuery column types (`STRING`, `DATE`, …) stay on the template column and are shown next to the name. A copied CSV column uses `0`. A SQL expression such as `SUBSTR(...)` uses `1`.
+- `bqParams.sourceFormat` is an integer: `0` CSV, `1` JSON. The form is a select of those labels.
+- `organization.account` and `bqParams.nullMarker` are nullable. An empty field is sent as `null`.
+- `organization.type` writes must be `advertiser` or `publisher`. A stored `referential` value is shown in the select and blocks save until it is changed. Partner type still derives from the dataset when the organization type is neither publisher nor advertiser.
+- `partnerType` and `importType` are derived. The client keeps values the API returns. Otherwise it follows the API's `Classify`: organization type, then dataset id, then import kind; import kind prefers the last id segment, then the table id. `profiles` is opt-in. The opt-out starter table id is `optout`.
+- Request bodies contain only modeled fields. `createTime`, `updateTime`, `partnerType`, and `importType` are omitted. `deactivated`, `incremental`, and `mappings.<column>.isPartitionKey` are not in the schema; sending them is HTTP 400 (`DisallowUnknownFields`). The API preserves those stored fields on PUT when they are absent from the body, so this console does not edit them.
+- List takes `partnerType`, `importType`, and `q` only. There is no deactivated filter.
+- Config ids are path-encoded. `DELETE` is 204 with an empty body, read as text.
+- `POST /load-configs/validate` returns 200 with `{errors, warnings}`. Errors block save. Warnings need Save anyway. The mock follows the API's checks: organization type, source format, mapping type, at least one pattern, notification all-or-nothing, unanchored regex, shared patterns, and `INCREMENTAL` without a primary key.
+- `POST /load-configs/test-pattern` sets `matches` from the submitted pattern. `matchingConfigId` is the first config, in document id order, whose ingest or preprocess pattern matches the path. Either pattern counts.
+- Mapping order is JSON key order. A Go map or Firestore map may not keep it.
+- Mock template starters use project `demo-dmc-eu`. The API's `/templates` defaults use `dmc-datastores-dev-becb`. Column lists, mapping type `0`, and nullable account and null marker match the API catalog.
+- Field delimiter Tab is the single character U+0009. The form rejects the two-character text `\t`. The API only warns about that text.
 
 ## Open questions
 
-- Final OpenAPI from `dmc-dataloader-api`, especially mapping type codes and which fields are required.
-- Whether `profiles` is always publisher opt-in, and how opt-out tables are named.
-- Whether the loader matches `patterns.ingest`, `patterns.preprocess`, or both against `bucket/objectName`.
 - Whether mapping order needs an explicit field because Firestore maps are unordered.
 - Whether IAP identity should come from `/whoami` on this container or from a future `/api/v1/me`.
+- Whether the console should gain a way to edit `deactivated`, `incremental`, and `isPartitionKey` once the API models them. Today those fields are preserved server-side and are not readable.
