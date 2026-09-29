@@ -78,31 +78,38 @@ Cloud Run injects `PORT` (the image defaults to 8080). IAP headers `X-Goog-Authe
 
 `cloudbuild.yaml` builds the image, pushes it to Artifact Registry, and deploys Cloud Run in `europe-west1`. It is not run by this repository's CI. Substitutions:
 
-| Name | Default |
-| --- | --- |
-| `_REGION` | `europe-west1` |
-| `_SERVICE` | `dmc-dataloader-console` |
-| `_REPOSITORY` | `dmc` |
+| Name            | Default                                                           |
+| --------------- | ----------------------------------------------------------------- |
+| `_REGION`       | `europe-west1`                                                    |
+| `_SERVICE`      | `dmc-dataloader-console`                                          |
+| `_REPOSITORY`   | `dmc`                                                             |
 | `_API_BASE_URL` | empty (same origin; put the API behind the same host or set this) |
 
 IAP and the Artifact Registry repository are configured outside this file. Do not deploy from a laptop with this config unless that project setup already exists.
 
 ## Contract assumptions
 
-Aligned with `dmc-dataloader-api` `api/openapi.yaml`:
+The create and edit flow follows `dmc-dataloader-api` `api/openapi.yaml` (`LoadConfigWrite`, `DerivedConfig`, and the organization routes).
 
+- `GET /api/v1/organizations?type=publisher|advertiser` returns a JSON array `[{id, name, slug}]`. A bad `type` is 400.
+- `GET /api/v1/organizations/{id}/accounts` returns `[{id, name, slug}]`. An unknown organization returns an empty array.
+- `GET /api/v1/organizations/{slug}/bases?type=publisher` returns `[{name, slug}]`. `id` is omitted. Names are the slugs already used in load-config paths. A bad `type` is 400.
+- `POST /api/v1/load-configs/derive` takes `{kind, organizationName, nestedName, fileType}` and returns `{id, publisherName, patterns, notification, destination, organization, warnings}`. Warnings include pattern overlap and `a load config with this id already exists`. A 422 names the organization (`organization "Name" (kind) was not found`) or the account (`account "Name" was not found for organization "Name"`). An unknown publisher base is accepted. An empty slug is `organization name is empty after slug normalization` or `nested name is empty after slug normalization`.
+- Create and update send `LoadConfigWrite`: `{kind, organizationName, nestedName, fileType, mode, bqParams, mappings}`. Derived plumbing is not sent. Create is 201 and sets `Location`. 409 means the id already exists. Update omits the four identity fields for a legacy document, and the server keeps stored plumbing. Sending identity that slugs to the same document also keeps stored plumbing. Changing it moves the document; the response sets `Location`, and the console opens that id.
+- `POST /load-configs/validate` takes a full `LoadConfig` (the derived document, or the stored legacy document with the edited mode, `bqParams`, and mappings). It does not take the slim write body.
+- Mock derive trims, lowercases, strips accents, turns spaces and `-` into `_`, and keeps `[a-z0-9_]`. The id and `publisherName` are `{org}:{nested}:{fileType}`. Patterns are unanchored, with no `^` or `$`, and the dot in `tar.gz` is not escaped. Advertiser preprocess is `dkp-dmc-advertisers-raw-euw1-dev/{org}/{nested}/{fileType}/.+[.](csv|zip|gz|gzip|tgz|tar.gz|7z)`. Advertiser ingest is `dkp-dmc-advertisers-staging-euw1-dev/data/[0-9]{4}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z/{org}/{nested}/{fileType}/.+`. Publishers use the `dkp-dmc-publishers-*` buckets. Notification is `dmc-curated-inventory-dev-e6da` / `dkp-dmc-data-loader-notifications-dev`. Advertiser destination is `dmc-raw-advertisers-dev-27c7` / `dkp_dmc_advertisers_raw_eu_dev` / the file type, and `organization.account` is the account document id. Publisher destination is `dmc-raw-publishers-dev-c69c` / `dkp_dmc_publishers_raw_eu_dev`, with `optin` stored in `profiles` and `optout` in `optout`, and `organization.account` is `""`.
+- GET list and GET one return the stored document. When the id or patterns follow the convention, the payload also includes read-only `kind`, `organizationName`, `nestedName`, and `fileType` (slugs). Legacy documents omit those four. The edit screen uses their presence to decide which form to show.
 - Mapping `type` is the domain iota: `0 RENAME`, `1 SQL`, `2 PREFIX_PATTERN`, `3 CUSTOM`, `4 EXTRA_FIELDS`, `5 MISSING_MAPPINGS`, `6 ARRAY`. Labels come from `/meta`. BigQuery column types (`STRING`, `DATE`, …) stay on the template column and are shown next to the name. A copied CSV column uses `0`. A SQL expression such as `SUBSTR(...)` uses `1`.
 - `bqParams.sourceFormat` is an integer: `0` CSV, `1` JSON. The form is a select of those labels.
-- `organization.account` and `bqParams.nullMarker` are nullable. An empty field is sent as `null`.
-- `organization.type` writes must be `advertiser` or `publisher`. A stored `referential` value is shown in the select and blocks save until it is changed. Partner type still derives from the dataset when the organization type is neither publisher nor advertiser.
-- `partnerType` and `importType` are derived. The client keeps values the API returns. Otherwise it follows the API's `Classify`: organization type, then dataset id, then import kind; import kind prefers the last id segment, then the table id. `profiles` is opt-in. The opt-out starter table id is `optout`.
-- Request bodies contain only modeled fields. `createTime`, `updateTime`, `partnerType`, and `importType` are omitted. `deactivated`, `incremental`, and `mappings.<column>.isPartitionKey` are not in the schema; sending them is HTTP 400 (`DisallowUnknownFields`). The API preserves those stored fields on PUT when they are absent from the body, so this console does not edit them.
+- `organization.account` and `bqParams.nullMarker` are nullable. An empty null marker is sent as `null`.
+- `partnerType` and `importType` are derived on read. The client keeps values the API returns. Otherwise it follows the API's `Classify`: organization type, then dataset id, then import kind; import kind prefers the last id segment, then the table id. `profiles` is opt-in.
+- `createTime`, `updateTime`, `partnerType`, and `importType` are omitted from writes. `deactivated`, `incremental`, and `mappings.<column>.isPartitionKey` are not sent. The API preserves those stored fields on PUT when they are absent from the body.
 - List takes `partnerType`, `importType`, and `q` only. There is no deactivated filter.
 - Config ids are path-encoded. `DELETE` is 204 with an empty body, read as text.
-- `POST /load-configs/validate` returns 200 with `{errors, warnings}`. Errors block save. Warnings need Save anyway. The mock follows the API's checks: organization type, source format, mapping type, at least one pattern, notification all-or-nothing, unanchored regex, shared patterns, and `INCREMENTAL` without a primary key.
+- Validate returns 200 with `{errors, warnings}`. Errors block save. Warnings need Save anyway. The mock still checks source format, mapping type, and `INCREMENTAL` without a primary key. Generated patterns are unanchored, so validate reports that warning. A stored `referential` organization type can be read and is rejected when a write keeps it.
 - `POST /load-configs/test-pattern` sets `matches` from the submitted pattern. `matchingConfigId` is the first config, in document id order, whose ingest or preprocess pattern matches the path. Either pattern counts.
 - Mapping order is JSON key order. A Go map or Firestore map may not keep it.
-- Mock template starters use project `demo-dmc-eu`. The API's `/templates` defaults use `dmc-datastores-dev-becb`. Column lists, mapping type `0`, and nullable account and null marker match the API catalog.
+- Mock template starters still carry a destination in `defaults` for the templates endpoint. The form copies mode, `bqParams`, and mappings only.
 - Field delimiter Tab is the single character U+0009. The form rejects the two-character text `\t`. The API only warns about that text.
 
 ## Open questions

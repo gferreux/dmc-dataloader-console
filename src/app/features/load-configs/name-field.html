@@ -1,0 +1,26 @@
+<mat-form-field appearance="outline" class="name-field">
+  <mat-label>{{ label() }}</mat-label>
+  <input
+    matInput
+    [formControl]="control"
+    [matAutocomplete]="auto"
+    [attr.data-testid]="testId() || null"
+    autocomplete="off"
+  />
+  <mat-autocomplete #auto="matAutocomplete">
+    @for (option of filtered(); track option.id ?? option.slug) {
+      <mat-option [value]="option.name">
+        <span class="option">
+          <span>{{ option.name }}</span>
+          <span class="muted">{{ option.slug }}</span>
+        </span>
+      </mat-option>
+    }
+  </mat-autocomplete>
+  @if (hint() && !control.hasError('server')) {
+    <mat-hint>{{ hint() }}</mat-hint>
+  }
+  @if (error()) {
+    <mat-error>{{ error() }}</mat-error>
+  }
+</mat-form-field>

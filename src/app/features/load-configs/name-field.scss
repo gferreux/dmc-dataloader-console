@@ -1,0 +1,14 @@
+:host {
+  display: block;
+}
+
+.name-field {
+  width: 100%;
+}
+
+.option {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--dim-sm);
+  width: 100%;
+}

@@ -2,20 +2,31 @@ import { Observable, of, throwError } from 'rxjs';
 
 import { ApiException } from '../api-error';
 import { LoadConfigApi } from '../load-config-api';
+import { materialize, sanitizeBqParams, sanitizeMappings } from '../write-body';
 import {
+  DeriveRequest,
+  DeriveResult,
   ListQuery,
   ListResponse,
   LoadConfig,
+  LoadConfigUpdate,
   LoadConfigWrite,
   Meta,
+  NestedSummary,
+  OrganizationSummary,
+  PartnerType,
   TemplateListResponse,
   TestPatternRequest,
   TestPatternResult,
   ValidationResult,
+  isIdentityWrite,
 } from '../../models/load-config.model';
 import { withDerived } from '../../utils/derive';
+import { slugify } from '../../utils/slug';
+import { deriveLoadConfig, parseIdentity, presented, sameIdentity } from '../../utils/plumbing';
 import { META, TEMPLATES } from './catalog';
 import { FIXTURES } from './fixtures';
+import { ORGANIZATIONS } from './organizations';
 import { validateConfig } from './validate-config';
 
 export class MockLoadConfigApi implements LoadConfigApi {
@@ -26,7 +37,7 @@ export class MockLoadConfigApi implements LoadConfigApi {
   }
 
   list(query: ListQuery): Observable<ListResponse> {
-    let items = this.configs.map((item) => withDerived(structuredClone(item)));
+    let items = this.configs.map((item) => this.view(item));
     if (query.partnerType) {
       items = items.filter((item) => item.partnerType === query.partnerType);
     }
@@ -54,41 +65,47 @@ export class MockLoadConfigApi implements LoadConfigApi {
     if (!found) {
       return this.fail(404, 'not_found', `Config ${id} was not found.`);
     }
-    return of(withDerived(structuredClone(found)));
+    return of(this.view(found));
   }
 
   create(body: LoadConfigWrite): Observable<LoadConfig> {
-    if (this.configs.some((item) => item.id === body.id)) {
-      return this.fail(409, 'conflict', `Config ${body.id} already exists.`);
+    const derived = this.requireDerived(body);
+    if (derived instanceof ApiException) {
+      return throwError(() => derived);
     }
-    const validation = this.validationFor(body);
+    if (this.configs.some((item) => item.id === derived.id)) {
+      return this.fail(409, 'conflict', `Config ${derived.id} already exists.`);
+    }
+    const created = withDerived({
+      ...materialize(derived, body),
+      createTime: new Date().toISOString(),
+      updateTime: new Date().toISOString(),
+    });
+    const validation = validateConfig(created, this.configs, META);
     if (validation.errors.length) {
-      return this.fail(422, 'validation_error', validation.errors[0].message, validation);
+      return this.fail(422, 'validation_error', validation.errors[0].message, validation.errors);
     }
-    const now = new Date().toISOString();
-    const created = withDerived({ ...structuredClone(body), createTime: now, updateTime: now });
     this.configs = [...this.configs, created];
-    return of(structuredClone(created));
+    return of(this.view(created));
   }
 
-  update(id: string, body: LoadConfigWrite): Observable<LoadConfig> {
+  update(id: string, body: LoadConfigUpdate): Observable<LoadConfig> {
     const index = this.configs.findIndex((item) => item.id === id);
     if (index < 0) {
       return this.fail(404, 'not_found', `Config ${id} was not found.`);
     }
-    const validation = this.validationFor({ ...body, id });
-    if (validation.errors.length) {
-      return this.fail(422, 'validation_error', validation.errors[0].message, validation);
-    }
     const current = this.configs[index];
-    const updated = withDerived({
-      ...structuredClone(body),
-      id,
-      createTime: current.createTime,
-      updateTime: new Date().toISOString(),
-    });
-    this.configs = this.configs.map((item, itemIndex) => (itemIndex === index ? updated : item));
-    return of(structuredClone(updated));
+    const updated = this.nextDocument(current, body);
+    if (updated instanceof ApiException) {
+      return throwError(() => updated);
+    }
+    const others = this.configs.filter((item) => item.id !== id);
+    const validation = validateConfig(updated, others, META);
+    if (validation.errors.length) {
+      return this.fail(422, 'validation_error', validation.errors[0].message, validation.errors);
+    }
+    this.configs = [...others.filter((item) => item.id !== updated.id), updated];
+    return of(this.view(updated));
   }
 
   delete(id: string): Observable<void> {
@@ -99,8 +116,41 @@ export class MockLoadConfigApi implements LoadConfigApi {
     return of(undefined);
   }
 
-  validate(body: LoadConfigWrite): Observable<ValidationResult> {
-    return of(this.validationFor(body));
+  validate(body: LoadConfig): Observable<ValidationResult> {
+    return of(validateConfig(body, this.configs, META));
+  }
+
+  derive(body: DeriveRequest): Observable<DeriveResult> {
+    const outcome = deriveLoadConfig(body, ORGANIZATIONS, this.configs);
+    if (!outcome.ok) {
+      const message = outcome.issues[0]?.message ?? 'Validation failed';
+      return this.fail(422, 'validation_error', message, outcome.issues);
+    }
+    return of(outcome.result);
+  }
+
+  organizations(type: PartnerType): Observable<OrganizationSummary[]> {
+    if (type !== 'advertiser' && type !== 'publisher') {
+      return this.fail(400, 'bad_request', 'type must be advertiser or publisher');
+    }
+    return of(
+      ORGANIZATIONS.filter((org) => org.type === type).map(({ id, name, slug }) => ({
+        id,
+        name,
+        slug,
+      })),
+    );
+  }
+
+  accounts(organizationId: string): Observable<NestedSummary[]> {
+    const org = ORGANIZATIONS.find((item) => item.id === organizationId);
+    return of(
+      org ? org.accounts.map((item) => ({ id: item.id, name: item.name, slug: item.slug })) : [],
+    );
+  }
+
+  bases(slug: string): Observable<NestedSummary[]> {
+    return of(basesFromConfigs(this.configs, slug));
   }
 
   testPattern(body: TestPatternRequest): Observable<TestPatternResult> {
@@ -132,13 +182,90 @@ export class MockLoadConfigApi implements LoadConfigApi {
     return of(structuredClone(META));
   }
 
-  private validationFor(body: LoadConfigWrite): ValidationResult {
-    return validateConfig(body, this.configs, META);
+  private requireDerived(body: LoadConfigWrite): DeriveResult | ApiException {
+    const outcome = deriveLoadConfig(body, ORGANIZATIONS, this.configs);
+    if (!outcome.ok) {
+      return new ApiException(
+        422,
+        'validation_error',
+        outcome.issues[0]?.message ?? 'Validation failed',
+        outcome.issues,
+      );
+    }
+    return outcome.result;
   }
 
-  private fail(status: number, code: string, message: string, details?: unknown): Observable<never> {
+  private view(config: LoadConfig): LoadConfig {
+    return presented(withDerived(structuredClone(config)));
+  }
+
+  private nextDocument(current: LoadConfig, body: LoadConfigUpdate): LoadConfig | ApiException {
+    const now = new Date().toISOString();
+    const kept = withDerived({
+      ...structuredClone(current),
+      mode: body.mode,
+      bqParams: sanitizeBqParams(body.bqParams),
+      mappings: sanitizeMappings(body.mappings),
+      updateTime: now,
+    });
+    if (!isIdentityWrite(body)) {
+      return kept;
+    }
+    const parsed = parseIdentity(current);
+    if (parsed && sameIdentity(parsed, body)) {
+      return kept;
+    }
+    const derived = this.requireDerived(body);
+    if (derived instanceof ApiException) {
+      return derived;
+    }
+    if (this.configs.some((item) => item.id === derived.id && item.id !== current.id)) {
+      return new ApiException(409, 'conflict', 'load config already exists');
+    }
+    return withDerived({
+      id: derived.id,
+      publisherName: derived.publisherName,
+      patterns: derived.patterns,
+      destination: derived.destination,
+      organization: derived.organization,
+      notification: derived.notification,
+      mode: body.mode,
+      bqParams: sanitizeBqParams(body.bqParams),
+      mappings: sanitizeMappings(body.mappings),
+      createTime: current.createTime,
+      updateTime: now,
+    });
+  }
+
+  private fail(
+    status: number,
+    code: string,
+    message: string,
+    details?: unknown,
+  ): Observable<never> {
     return throwError(() => new ApiException(status, code, message, details));
   }
+}
+
+function basesFromConfigs(configs: readonly LoadConfig[], slug: string): NestedSummary[] {
+  const wanted = slugify(slug);
+  if (!wanted) {
+    return [];
+  }
+  const seen = new Map<string, NestedSummary>();
+  for (const config of configs) {
+    const ident = parseIdentity(config);
+    if (!ident || ident.kind !== 'publisher' || ident.organizationName !== wanted) {
+      continue;
+    }
+    if (config.organization?.type === 'advertiser') {
+      continue;
+    }
+    if (!seen.has(ident.nestedName)) {
+      seen.set(ident.nestedName, { name: ident.nestedName, slug: ident.nestedName });
+    }
+  }
+  return [...seen.values()].sort((left, right) => left.slug.localeCompare(right.slug));
 }
 
 function matchesPattern(pattern: string, path: string): boolean {

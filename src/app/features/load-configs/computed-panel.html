@@ -1,0 +1,101 @@
+@if (result(); as current) {
+  @if (current.warnings.length) {
+    <div class="overlap" role="status">
+      <h2>Warnings</h2>
+      <ul>
+        @for (warning of current.warnings; track warning.field + warning.message) {
+          <li>{{ warning.message }}</li>
+        }
+      </ul>
+    </div>
+  }
+}
+
+<details class="panel computed" data-testid="computed-panel">
+  <summary>
+    <span>{{ heading() }}</span>
+    @if (pending()) {
+      <span class="muted">Updating…</span>
+    }
+  </summary>
+  @if (result(); as result) {
+    <div class="body">
+      <p class="muted">Read-only.</p>
+      <section>
+        <h3>Identity</h3>
+        <dl>
+          <div>
+            <dt>Id</dt>
+            <dd class="mono">{{ result.id }}</dd>
+          </div>
+          <div>
+            <dt>Publisher name</dt>
+            <dd>{{ result.publisherName }}</dd>
+          </div>
+        </dl>
+      </section>
+      <section>
+        <h3>Patterns</h3>
+        <dl>
+          <div>
+            <dt>Preprocess</dt>
+            <dd class="mono">{{ result.patterns.preprocess || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Ingest</dt>
+            <dd class="mono">{{ result.patterns.ingest || '—' }}</dd>
+          </div>
+        </dl>
+      </section>
+      <section>
+        <h3>Notification</h3>
+        <dl>
+          <div>
+            <dt>Project</dt>
+            <dd class="mono">{{ result.notification.projectId || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Topic</dt>
+            <dd class="mono">{{ result.notification.topicId || '—' }}</dd>
+          </div>
+        </dl>
+      </section>
+      <section>
+        <h3>Destination</h3>
+        <dl>
+          <div>
+            <dt>Project</dt>
+            <dd class="mono">{{ result.destination.projectId || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Dataset</dt>
+            <dd class="mono">{{ result.destination.datasetId || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Table</dt>
+            <dd class="mono">{{ result.destination.tableId || '—' }}</dd>
+          </div>
+        </dl>
+      </section>
+      <section>
+        <h3>Organization</h3>
+        <dl>
+          <div>
+            <dt>Id</dt>
+            <dd class="mono">{{ result.organization.id || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Account</dt>
+            <dd class="mono">{{ accountText(result.organization.account) }}</dd>
+          </div>
+          <div>
+            <dt>Type</dt>
+            <dd>{{ result.organization.type || '—' }}</dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+  } @else {
+    <p class="empty muted">The server has not computed these fields yet.</p>
+  }
+</details>

@@ -1,3 +1,16 @@
+.section {
+  padding: var(--dim-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--dim-sm);
+}
+
+.note {
+  margin: 0;
+  font: var(--body-sm-regular);
+  color: var(--UI-DS-Gray-700);
+}
+
 .actions {
   display: flex;
   justify-content: space-between;

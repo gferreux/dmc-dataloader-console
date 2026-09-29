@@ -2,10 +2,17 @@ import { FIXTURES } from '../api/mock/fixtures';
 import { TEMPLATES } from '../api/mock/catalog';
 import { MAPPING_TYPE_RENAME, MAPPING_TYPE_SQL } from '../models/load-config.model';
 import { TAB_DELIMITER } from '../utils/delimiter';
-import { applyTemplate, createLoadConfigForm, setMappings, draftsFromConfig, toWriteModel } from './load-config-form';
+import { hasConventionIdentity } from '../utils/plumbing';
+import {
+  applyTemplate,
+  createLoadConfigForm,
+  draftsFromConfig,
+  setMappings,
+  toWriteModel,
+} from './load-config-form';
 
 describe('load config form', () => {
-  it('prefills a template with RENAME mappings and a numeric CSV source format', () => {
+  it('prefills a template and writes only identity, mappings, and load settings', () => {
     const form = createLoadConfigForm();
     const sales = TEMPLATES.find((item) => item.importType === 'sales');
     expect(sales).toBeTruthy();
@@ -22,14 +29,27 @@ describe('load config form', () => {
     expect(form.controls.sourceFormat.value).toBe(0);
 
     form.controls.fieldDelimiter.setValue(TAB_DELIMITER);
-    const written = toWriteModel(form);
+    const written = toWriteModel(form, {
+      kind: 'advertiser',
+      organizationName: 'Sample Brand',
+      nestedName: 'Sample',
+      fileType: 'sales',
+    });
+    expect(written.kind).toBe('advertiser');
+    expect(written.organizationName).toBe('Sample Brand');
+    expect(written.nestedName).toBe('Sample');
+    expect(written.fileType).toBe('sales');
     expect(written.bqParams.fieldDelimiter).toBe('\t');
     expect(written.bqParams.fieldDelimiter).not.toBe('\\t');
     expect(written.bqParams.sourceFormat).toBe(0);
     expect(written.bqParams.nullMarker).toBeNull();
-    expect(written.organization.account).toBeNull();
+    expect(written).not.toHaveProperty('id');
+    expect(written).not.toHaveProperty('publisherName');
+    expect(written).not.toHaveProperty('patterns');
+    expect(written).not.toHaveProperty('destination');
+    expect(written).not.toHaveProperty('organization');
+    expect(written).not.toHaveProperty('notification');
     expect(written).not.toHaveProperty('deactivated');
-    expect(written).not.toHaveProperty('incremental');
     expect(Object.values(written.mappings)[0]).not.toHaveProperty('isPartitionKey');
   });
 
@@ -45,19 +65,21 @@ describe('load config form', () => {
     expect(country?.controls.required.value).toBe(false);
   });
 
-  it('displays a legacy organization type and a SQL mapping', () => {
-    const stores = FIXTURES.find((item) => item.id === 'sample_brand:sample:stores');
+  it('keeps a SQL mapping and a legacy document id', () => {
     const optin = FIXTURES.find((item) => item.id === 'demo_retail:demo:optin');
-    expect(stores?.organization.type).toBe('referential');
-    const form = createLoadConfigForm(stores);
-    setMappings(form, draftsFromConfig(stores!));
-    expect(form.controls.organizationType.value).toBe('referential');
-    expect(form.controls.organizationAccount.value).toBe('');
-    expect(toWriteModel(form).organization.type).toBe('referential');
-    expect(toWriteModel(form).organization.account).toBeNull();
-
-    const idMapping = optin?.mappings['id'];
-    expect(idMapping?.type).toBe(MAPPING_TYPE_SQL);
-    expect(idMapping?.src).toBe('SUBSTR(email, 1, 8)');
+    const legacy = FIXTURES.find((item) => item.id === 'legacy_sample_stores');
+    const form = createLoadConfigForm(optin);
+    setMappings(form, draftsFromConfig(optin!));
+    const idMapping = form.controls.mappings.controls.find(
+      (group) => group.controls.column.value === 'id',
+    );
+    expect(idMapping?.controls.type.value).toBe(MAPPING_TYPE_SQL);
+    expect(idMapping?.controls.src.value).toBe('SUBSTR(email, 1, 8)');
+    expect(legacy?.organization.type).toBe('advertiser');
+    expect(legacy?.organization.account).toBeNull();
+    expect(hasConventionIdentity(legacy!)).toBe(false);
+    expect(hasConventionIdentity(optin!)).toBe(true);
+    expect(optin?.fileType).toBe('optin');
+    expect(optin?.organizationName).toBe('demo_retail');
   });
 });

@@ -1,19 +1,25 @@
-import { AbstractControl, FormArray, FormControl, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormArray,
+  FormControl,
+  FormGroup,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 
 import {
   ColumnMapping,
   ImportTemplate,
-  ImportType,
   LoadConfig,
+  LoadConfigLegacyWrite,
   LoadConfigWrite,
   LoadMode,
   MAPPING_TYPE_RENAME,
   PartnerType,
+  ImportType,
   TemplateColumn,
 } from '../models/load-config.model';
 import { isSingleCharacter } from '../utils/delimiter';
-
-export const ORGANIZATION_TYPES = ['advertiser', 'publisher'] as const;
 
 export interface MappingFormControls {
   uid: FormControl<string>;
@@ -31,21 +37,7 @@ export interface MappingFormControls {
 export type MappingFormGroup = FormGroup<MappingFormControls>;
 
 export interface LoadConfigFormControls {
-  id: FormControl<string>;
-  publisherName: FormControl<string>;
   mode: FormControl<LoadMode>;
-  partnerType: FormControl<PartnerType | ''>;
-  importType: FormControl<ImportType | ''>;
-  preprocess: FormControl<string>;
-  ingest: FormControl<string>;
-  projectId: FormControl<string>;
-  datasetId: FormControl<string>;
-  tableId: FormControl<string>;
-  organizationId: FormControl<string>;
-  organizationAccount: FormControl<string>;
-  organizationType: FormControl<string>;
-  notificationProjectId: FormControl<string>;
-  notificationTopicId: FormControl<string>;
   fieldDelimiter: FormControl<string>;
   skipLeadingRows: FormControl<number | string>;
   nullMarker: FormControl<string>;
@@ -55,6 +47,13 @@ export interface LoadConfigFormControls {
 }
 
 export type LoadConfigForm = FormGroup<LoadConfigFormControls>;
+
+export interface IdentityInput {
+  kind: PartnerType;
+  organizationName: string;
+  nestedName: string;
+  fileType: ImportType;
+}
 
 export interface MappingDraft {
   column: string;
@@ -66,10 +65,6 @@ export interface MappingDraft {
   required?: boolean;
   formatHint?: string;
   bqType?: string;
-}
-
-function requiredText(): ValidatorFn {
-  return Validators.required;
 }
 
 function singleCharacter(control: AbstractControl): ValidationErrors | null {
@@ -88,8 +83,14 @@ function quoteChar(control: AbstractControl): ValidationErrors | null {
 export function createMappingGroup(draft?: Partial<MappingDraft>): MappingFormGroup {
   return new FormGroup<MappingFormControls>({
     uid: new FormControl(crypto.randomUUID(), { nonNullable: true }),
-    column: new FormControl(draft?.column ?? '', { nonNullable: true, validators: [Validators.required] }),
-    src: new FormControl(draft?.src ?? '', { nonNullable: true, validators: [Validators.required] }),
+    column: new FormControl(draft?.column ?? '', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    src: new FormControl(draft?.src ?? '', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
     type: new FormControl(draft?.type ?? MAPPING_TYPE_RENAME, {
       nonNullable: true,
       validators: [Validators.required],
@@ -106,73 +107,30 @@ export function createMappingGroup(draft?: Partial<MappingDraft>): MappingFormGr
 }
 
 export function createLoadConfigForm(config?: LoadConfig): LoadConfigForm {
-  return new FormGroup<LoadConfigFormControls>(
-    {
-      id: new FormControl(config?.id ?? '', { nonNullable: true, validators: [requiredText()] }),
-      publisherName: new FormControl(config?.publisherName ?? '', {
-        nonNullable: true,
-        validators: [requiredText()],
-      }),
-      mode: new FormControl(config?.mode ?? 'APPEND', { nonNullable: true, validators: [Validators.required] }),
-      partnerType: new FormControl(config?.partnerType ?? '', { nonNullable: true }),
-      importType: new FormControl(config?.importType ?? '', { nonNullable: true }),
-      preprocess: new FormControl(config?.patterns.preprocess ?? '', {
-        nonNullable: true,
-        validators: [requiredText()],
-      }),
-      ingest: new FormControl(config?.patterns.ingest ?? '', {
-        nonNullable: true,
-        validators: [requiredText()],
-      }),
-      projectId: new FormControl(config?.destination.projectId ?? '', {
-        nonNullable: true,
-        validators: [requiredText()],
-      }),
-      datasetId: new FormControl(config?.destination.datasetId ?? '', {
-        nonNullable: true,
-        validators: [requiredText()],
-      }),
-      tableId: new FormControl(config?.destination.tableId ?? '', {
-        nonNullable: true,
-        validators: [requiredText()],
-      }),
-      organizationId: new FormControl(config?.organization.id ?? '', {
-        nonNullable: true,
-        validators: [requiredText()],
-      }),
-      organizationAccount: new FormControl(config?.organization.account ?? '', {
-        nonNullable: true,
-        validators: [requiredText()],
-      }),
-      organizationType: new FormControl(config?.organization.type ?? '', {
-        nonNullable: true,
-        validators: [requiredText()],
-      }),
-      notificationProjectId: new FormControl(config?.notification.projectId ?? '', {
-        nonNullable: true,
-        validators: [requiredText()],
-      }),
-      notificationTopicId: new FormControl(config?.notification.topicId ?? '', {
-        nonNullable: true,
-        validators: [requiredText()],
-      }),
-      fieldDelimiter: new FormControl(config?.bqParams.fieldDelimiter ?? ',', {
-        nonNullable: true,
-        validators: [singleCharacter],
-      }),
-      skipLeadingRows: new FormControl<number | string>(config?.bqParams.skipLeadingRows ?? 1, {
-        nonNullable: true,
-        validators: [nonNegativeInt],
-      }),
-      nullMarker: new FormControl(config?.bqParams.nullMarker ?? '', { nonNullable: true }),
-      quote: new FormControl(config?.bqParams.quote ?? '"', { nonNullable: true, validators: [quoteChar] }),
-      sourceFormat: new FormControl(config?.bqParams.sourceFormat ?? 0, {
-        nonNullable: true,
-        validators: [Validators.required],
-      }),
-      mappings: new FormArray<MappingFormGroup>([]),
-    },
-  );
+  return new FormGroup<LoadConfigFormControls>({
+    mode: new FormControl(config?.mode ?? 'APPEND', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    fieldDelimiter: new FormControl(config?.bqParams.fieldDelimiter ?? ',', {
+      nonNullable: true,
+      validators: [singleCharacter],
+    }),
+    skipLeadingRows: new FormControl<number | string>(config?.bqParams.skipLeadingRows ?? 1, {
+      nonNullable: true,
+      validators: [nonNegativeInt],
+    }),
+    nullMarker: new FormControl(config?.bqParams.nullMarker ?? '', { nonNullable: true }),
+    quote: new FormControl(config?.bqParams.quote ?? '"', {
+      nonNullable: true,
+      validators: [quoteChar],
+    }),
+    sourceFormat: new FormControl(config?.bqParams.sourceFormat ?? 0, {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    mappings: new FormArray<MappingFormGroup>([]),
+  });
 }
 
 export function draftFromColumn(column: TemplateColumn, src?: string): MappingDraft {
@@ -225,18 +183,7 @@ export function setMappings(form: LoadConfigForm, drafts: readonly MappingDraft[
 export function applyTemplate(form: LoadConfigForm, template: ImportTemplate): void {
   const defaults = template.defaults;
   form.patchValue({
-    partnerType: template.partnerType,
-    importType: template.importType,
     mode: defaults.mode,
-    preprocess: defaults.patterns.preprocess,
-    ingest: defaults.patterns.ingest,
-    projectId: defaults.destination.projectId,
-    datasetId: defaults.destination.datasetId,
-    tableId: defaults.destination.tableId,
-    organizationType: defaults.organization.type,
-    organizationAccount: defaults.organization.account ?? '',
-    notificationProjectId: defaults.notification.projectId,
-    notificationTopicId: defaults.notification.topicId,
     fieldDelimiter: defaults.bqParams.fieldDelimiter,
     skipLeadingRows: defaults.bqParams.skipLeadingRows,
     nullMarker: defaults.bqParams.nullMarker ?? '',
@@ -258,7 +205,9 @@ function nullableText(value: string): string | null {
   return trimmed ? trimmed : null;
 }
 
-export function toWriteModel(form: LoadConfigForm): LoadConfigWrite {
+function readPayload(
+  form: LoadConfigForm,
+): Pick<LoadConfigWrite, 'mode' | 'bqParams' | 'mappings'> {
   const value = form.getRawValue();
   const mappings: Record<string, ColumnMapping> = {};
   for (const row of value.mappings) {
@@ -275,24 +224,7 @@ export function toWriteModel(form: LoadConfigForm): LoadConfigWrite {
     };
   }
   return {
-    id: value.id.trim(),
-    publisherName: value.publisherName.trim(),
     mode: value.mode,
-    patterns: { preprocess: value.preprocess.trim(), ingest: value.ingest.trim() },
-    destination: {
-      projectId: value.projectId.trim(),
-      datasetId: value.datasetId.trim(),
-      tableId: value.tableId.trim(),
-    },
-    organization: {
-      id: value.organizationId.trim(),
-      account: nullableText(value.organizationAccount),
-      type: value.organizationType.trim(),
-    },
-    notification: {
-      projectId: value.notificationProjectId.trim(),
-      topicId: value.notificationTopicId.trim(),
-    },
     bqParams: {
       fieldDelimiter: value.fieldDelimiter,
       skipLeadingRows: Number(value.skipLeadingRows),
@@ -304,60 +236,16 @@ export function toWriteModel(form: LoadConfigForm): LoadConfigWrite {
   };
 }
 
-export function toWriteModelFromConfig(config: LoadConfig): LoadConfigWrite {
-  const mappings: Record<string, ColumnMapping> = {};
-  for (const [name, mapping] of Object.entries(config.mappings)) {
-    mappings[name] = {
-      src: mapping.src,
-      type: mapping.type,
-      primaryKey: mapping.primaryKey,
-      useInDeleteFilter: mapping.useInDeleteFilter,
-      isRequiredPartitionFilter: mapping.isRequiredPartitionFilter,
-    };
-  }
+export function toWriteModel(form: LoadConfigForm, identity: IdentityInput): LoadConfigWrite {
   return {
-    id: config.id,
-    publisherName: config.publisherName,
-    mode: config.mode,
-    patterns: {
-      preprocess: config.patterns?.preprocess ?? '',
-      ingest: config.patterns?.ingest ?? '',
-    },
-    destination: { ...config.destination },
-    organization: {
-      id: config.organization?.id ?? '',
-      account: config.organization?.account ?? null,
-      type: config.organization?.type ?? '',
-    },
-    notification: {
-      projectId: config.notification?.projectId ?? '',
-      topicId: config.notification?.topicId ?? '',
-    },
-    bqParams: {
-      fieldDelimiter: config.bqParams.fieldDelimiter,
-      skipLeadingRows: config.bqParams.skipLeadingRows,
-      nullMarker: config.bqParams.nullMarker,
-      quote: config.bqParams.quote,
-      sourceFormat: config.bqParams.sourceFormat,
-    },
-    mappings,
+    kind: identity.kind,
+    organizationName: identity.organizationName.trim(),
+    nestedName: identity.nestedName.trim(),
+    fileType: identity.fileType,
+    ...readPayload(form),
   };
 }
 
-export function suggestConfigId(publisherName: string, account: string, importType: string): string {
-  const slug = (value: string) =>
-    value
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_|_$/g, '');
-  return `${slug(publisherName) || 'publisher'}:${slug(account) || 'account'}:${importType || 'import'}`;
-}
-
-export function organizationTypeOptions(current: string): string[] {
-  const known: string[] = [...ORGANIZATION_TYPES];
-  if (current && !known.includes(current)) {
-    known.push(current);
-  }
-  return known;
+export function toLegacyWrite(form: LoadConfigForm): LoadConfigLegacyWrite {
+  return readPayload(form);
 }

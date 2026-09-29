@@ -2,13 +2,16 @@
   <header class="page-header">
     <div>
       <h1>New import config</h1>
-      <p class="lede">Pick a partner and import kind. The form is filled from that template.</p>
+      <p class="lede">
+        Choose the organization, then a base or account, then the file type. Patterns, destination,
+        and notification are computed by the server.
+      </p>
     </div>
     <a matButton="outlined" routerLink="/load-configs">Back to list</a>
   </header>
 
   <ol class="steps">
-    @for (label of steps; track label; let index = $index) {
+    @for (label of stepLabels(); track $index; let index = $index) {
       <li [class.done]="step() > index" [class.current]="step() === index">
         <span class="bubble">{{ index + 1 }}</span>
         <span>{{ label }}</span>
@@ -22,73 +25,167 @@
     <p class="banner" role="alert">{{ error }}</p>
   } @else if (step() === 0) {
     <section class="kind-layout">
-      <div class="panel kind-group">
-        <h2>Publisher</h2>
-        @for (kind of publisherKinds; track kind) {
-          <button
-            type="button"
-            class="kind-card"
-            [class.selected]="partner() === 'publisher' && importType() === kind"
-            [attr.data-testid]="'kind-publisher-' + kind"
-            (click)="select('publisher', kind)"
-          >
-            <span>{{ label(kind) }}</span>
-            <span class="muted">{{ kind }}</span>
-          </button>
-        }
-      </div>
-      <div class="panel kind-group">
-        <h2>Advertiser</h2>
-        @for (kind of advertiserKinds; track kind) {
-          <button
-            type="button"
-            class="kind-card"
-            [class.selected]="partner() === 'advertiser' && importType() === kind"
-            [attr.data-testid]="'kind-advertiser-' + kind"
-            (click)="select('advertiser', kind)"
-          >
-            <span>{{ label(kind) }}</span>
-            <span class="muted">{{ kind }}</span>
-          </button>
-        }
-      </div>
+      <button
+        type="button"
+        class="panel kind-card"
+        [class.selected]="kind() === 'publisher'"
+        data-testid="kind-publisher"
+        (click)="selectKind('publisher')"
+      >
+        <span>Publisher</span>
+        <span class="muted">Imports opt-in and opt-out. A publisher has bases.</span>
+      </button>
+      <button
+        type="button"
+        class="panel kind-card"
+        [class.selected]="kind() === 'advertiser'"
+        data-testid="kind-advertiser"
+        (click)="selectKind('advertiser')"
+      >
+        <span>Advertiser</span>
+        <span class="muted"
+          >Imports blacklists, customers, stores, and sales. An advertiser has accounts.</span
+        >
+      </button>
     </section>
     <div class="actions">
-      <button matButton="filled" type="button" [disabled]="!importType()" (click)="continueFromKind()">
+      <button matButton="filled" type="button" [disabled]="!canContinue()" (click)="next()">
         Continue
       </button>
     </div>
-  } @else if (step() === 1 && form(); as form) {
+  } @else if (step() === 1) {
+    <section class="panel step-card">
+      <h2 class="section-title">Organization name</h2>
+      <p class="muted">
+        Pick a suggestion or type a name. Suggestions come from this organization kind.
+      </p>
+      <dmc-name-field
+        label="Organization name"
+        testId="organization-name"
+        hint="Free text is allowed. An unknown organization is reported by the server."
+        [value]="organizationName()"
+        [options]="orgOptions()"
+        [error]="issue('organizationName')"
+        (valueChange)="setOrganization($event)"
+      />
+    </section>
+    <div class="actions">
+      <button matButton="outlined" type="button" (click)="back()">Back</button>
+      <button
+        matButton="filled"
+        type="button"
+        data-testid="wizard-continue"
+        [disabled]="!canContinue()"
+        (click)="next()"
+      >
+        Continue
+      </button>
+    </div>
+  } @else if (step() === 2) {
+    <section class="panel step-card">
+      <h2 class="section-title">{{ nestedLabel() }} name</h2>
+      <p class="muted">
+        @if (kind() === 'advertiser') {
+          Advertiser accounts for {{ organizationName() || 'this organization' }}.
+        } @else {
+          Publisher bases for {{ organizationName() || 'this organization' }}.
+        }
+      </p>
+      <dmc-name-field
+        [label]="nestedLabel() + ' name'"
+        testId="nested-name"
+        hint="Free text is allowed. An unknown name is reported by the server."
+        [value]="nestedName()"
+        [options]="nestedOptions()"
+        [error]="issue('nestedName')"
+        (valueChange)="setNested($event)"
+      />
+    </section>
+    <div class="actions">
+      <button matButton="outlined" type="button" (click)="back()">Back</button>
+      <button
+        matButton="filled"
+        type="button"
+        data-testid="wizard-continue"
+        [disabled]="!canContinue()"
+        (click)="next()"
+      >
+        Continue
+      </button>
+    </div>
+  } @else if (step() === 3) {
+    <section class="file-types">
+      @for (option of fileTypes(); track option) {
+        <button
+          type="button"
+          class="panel kind-card"
+          [class.selected]="fileType() === option"
+          [attr.data-testid]="'kind-' + kind() + '-' + option"
+          (click)="chooseFileType(option)"
+        >
+          <span>{{ label(option) }}</span>
+          <span class="muted">{{ option }}</span>
+        </button>
+      }
+    </section>
+    @if (issue('fileType'); as message) {
+      <p class="banner" role="alert">{{ message }}</p>
+    }
+    <div class="actions">
+      <button matButton="outlined" type="button" (click)="back()">Back</button>
+      <button
+        matButton="filled"
+        type="button"
+        data-testid="wizard-continue"
+        [disabled]="!canContinue()"
+        (click)="next()"
+      >
+        Continue
+      </button>
+    </div>
+  } @else if (step() === 4 && form(); as form) {
+    <section class="panel review">
+      <h2 class="section-title">Identity</h2>
+      <dl>
+        <div>
+          <dt>Kind</dt>
+          <dd>{{ kind() }}</dd>
+        </div>
+        <div>
+          <dt>Organization</dt>
+          <dd>{{ organizationName() }}</dd>
+        </div>
+        <div>
+          <dt>{{ nestedLabel() }}</dt>
+          <dd>{{ nestedName() }}</dd>
+        </div>
+        <div>
+          <dt>File type</dt>
+          <dd>{{ fileType() }}</dd>
+        </div>
+      </dl>
+    </section>
+    <dmc-computed-panel [result]="derived()" [pending]="deriving()" />
     @if (meta(); as meta) {
       <dmc-config-form [form]="form" [meta]="meta" />
     }
+    <dmc-validation-panel
+      [result]="validation()"
+      [allowSaveAnyway]="true"
+      (saveAnyway)="save(true)"
+    />
     @if (localError(); as localError) {
       <p class="banner" role="alert">{{ localError }}</p>
     }
     <div class="actions">
-      <button matButton="outlined" type="button" (click)="step.set(0)">Back</button>
-      <button matButton="filled" type="button" [disabled]="form.invalid" (click)="goToReview()">Review</button>
-    </div>
-  } @else if (step() === 2 && form(); as form) {
-    <section class="panel review">
-      <h2 class="section-title">Review</h2>
-      <dl>
-        <div><dt>Id</dt><dd class="mono">{{ form.controls.id.value || '—' }}</dd></div>
-        <div><dt>Publisher</dt><dd>{{ form.controls.publisherName.value || '—' }}</dd></div>
-        <div><dt>Kind</dt><dd>{{ form.controls.partnerType.value }} / {{ form.controls.importType.value }}</dd></div>
-        <div><dt>Destination</dt><dd class="mono">{{ form.controls.datasetId.value }}.{{ form.controls.tableId.value }}</dd></div>
-        <div><dt>Mode</dt><dd>{{ form.controls.mode.value }}</dd></div>
-        <div><dt>Delimiter</dt><dd>{{ delimiter() }}</dd></div>
-        <div><dt>Mappings</dt><dd>{{ mappingCount() }} columns</dd></div>
-      </dl>
-    </section>
-    <dmc-validation-panel [result]="validation()" [allowSaveAnyway]="true" (saveAnyway)="save(true)" />
-    @if (localError(); as localError) {
-      <p class="banner" role="alert">{{ localError }}</p>
-    }
-    <div class="actions">
-      <button matButton="outlined" type="button" (click)="step.set(1)">Back</button>
-      <button matButton="filled" type="button" [disabled]="saving()" (click)="save(false)">
+      <button matButton="outlined" type="button" (click)="back()">Back</button>
+      <button
+        matButton="filled"
+        type="button"
+        data-testid="create-config"
+        [disabled]="saving() || form.invalid || deriving() || !derived() || issues().length > 0"
+        (click)="save(false)"
+      >
         {{ saving() ? 'Saving…' : 'Create config' }}
       </button>
     </div>

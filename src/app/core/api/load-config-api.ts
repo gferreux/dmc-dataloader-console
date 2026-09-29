@@ -4,11 +4,17 @@ import { Observable } from 'rxjs';
 
 import { RuntimeConfig } from '../config/runtime-config';
 import {
+  DeriveRequest,
+  DeriveResult,
   ListQuery,
   ListResponse,
   LoadConfig,
+  LoadConfigUpdate,
   LoadConfigWrite,
   Meta,
+  NestedSummary,
+  OrganizationSummary,
+  PartnerType,
   TemplateListResponse,
   TestPatternRequest,
   TestPatternResult,
@@ -21,9 +27,14 @@ export interface LoadConfigApi {
   list(query: ListQuery): Observable<ListResponse>;
   get(id: string): Observable<LoadConfig>;
   create(body: LoadConfigWrite): Observable<LoadConfig>;
-  update(id: string, body: LoadConfigWrite): Observable<LoadConfig>;
+  update(id: string, body: LoadConfigUpdate): Observable<LoadConfig>;
   delete(id: string): Observable<void>;
-  validate(body: LoadConfigWrite): Observable<ValidationResult>;
+  /** Full stored document. Create and update still send `LoadConfigWrite`. */
+  validate(body: LoadConfig): Observable<ValidationResult>;
+  derive(body: DeriveRequest): Observable<DeriveResult>;
+  organizations(type: PartnerType): Observable<OrganizationSummary[]>;
+  accounts(organizationId: string): Observable<NestedSummary[]>;
+  bases(slug: string): Observable<NestedSummary[]>;
   testPattern(body: TestPatternRequest): Observable<TestPatternResult>;
   templates(): Observable<TemplateListResponse>;
   meta(): Observable<Meta>;

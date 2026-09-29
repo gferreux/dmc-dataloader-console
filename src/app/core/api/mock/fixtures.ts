@@ -1,12 +1,14 @@
 import {
   ColumnMapping,
+  DeriveRequest,
   LoadConfig,
-  LoadConfigWrite,
   MAPPING_TYPE_SQL,
 } from '../../models/load-config.model';
 import { TAB_DELIMITER } from '../../utils/delimiter';
 import { withDerived } from '../../utils/derive';
+import { deriveLoadConfig, presented } from '../../utils/plumbing';
 import { TEMPLATES } from './catalog';
+import { ORGANIZATIONS } from './organizations';
 
 function mappingsFromTemplate(
   importType: string,
@@ -27,10 +29,6 @@ function mappingsFromTemplate(
   return result;
 }
 
-function config(partial: LoadConfigWrite & Pick<LoadConfig, 'createTime' | 'updateTime'>): LoadConfig {
-  return withDerived(partial);
-}
-
 const created = '2026-02-02T09:00:00.000Z';
 const updated = '2026-04-18T14:30:00.000Z';
 
@@ -42,101 +40,112 @@ const csv = {
   sourceFormat: 0,
 } as const;
 
+function convention(
+  input: DeriveRequest,
+  extra: Pick<LoadConfig, 'mode' | 'bqParams' | 'mappings' | 'createTime' | 'updateTime'>,
+): LoadConfig {
+  const outcome = deriveLoadConfig(input, ORGANIZATIONS);
+  if (!outcome.ok) {
+    throw new Error(outcome.issues.map((issue) => issue.message).join('; '));
+  }
+  const { warnings: _warnings, ...derived } = outcome.result;
+  return presented(withDerived({ ...derived, ...extra }));
+}
+
 /**
- * Small fictional fixtures. Dataset names follow the documented dev convention
- * so partner type can be derived. They are not a dump of production configs.
+ * Small fictional fixtures. Convention documents use the same plumbing as derive.
+ * `legacy_sample_stores` keeps a pre-convention id. Its organization type is
+ * `advertiser` so a legacy save is accepted. A stored `referential` type is
+ * readable and rejected on write.
  */
 export const FIXTURES: LoadConfig[] = [
-  config({
-    id: 'demo_retail:demo:optin',
-    publisherName: 'Demo Retail',
-    mode: 'APPEND',
-    patterns: {
-      preprocess: '^demo-bucket/publisher/optin/pre/.*\\.csv$',
-      ingest: '^demo-bucket/publisher/optin/.*\\.csv$',
+  convention(
+    {
+      kind: 'publisher',
+      organizationName: 'Demo Retail',
+      nestedName: 'Demo',
+      fileType: 'optin',
     },
-    destination: {
-      projectId: 'demo-dmc-eu',
-      datasetId: 'dkp_dmc_publishers_raw_eu_dev',
-      tableId: 'profiles',
+    {
+      mode: 'APPEND',
+      bqParams: { ...csv },
+      mappings: mappingsFromTemplate('optin', 'publisher', {
+        id: { src: 'SUBSTR(email, 1, 8)', type: MAPPING_TYPE_SQL, primaryKey: true },
+      }),
+      createTime: created,
+      updateTime: updated,
     },
-    organization: { id: 'org_demo_retail', account: 'demo', type: 'publisher' },
-    notification: { projectId: 'demo-dmc-eu', topicId: 'demo-load-events' },
-    bqParams: { ...csv },
-    mappings: mappingsFromTemplate('optin', 'publisher', {
-      id: { src: 'SUBSTR(email, 1, 8)', type: MAPPING_TYPE_SQL, primaryKey: true },
-    }),
-    createTime: created,
-    updateTime: updated,
-  }),
-  config({
-    id: 'demo_retail:demo:optout',
-    publisherName: 'Demo Retail',
-    mode: 'OVERWRITE',
-    patterns: {
-      preprocess: '^demo-bucket/publisher/optout/pre/.*\\.csv$',
-      ingest: '^demo-bucket/publisher/optout/.*\\.csv$',
+  ),
+  convention(
+    {
+      kind: 'publisher',
+      organizationName: 'Demo Retail',
+      nestedName: 'Demo',
+      fileType: 'optout',
     },
-    destination: {
-      projectId: 'demo-dmc-eu',
-      datasetId: 'dkp_dmc_publishers_raw_eu_dev',
-      tableId: 'optout',
+    {
+      mode: 'OVERWRITE',
+      bqParams: { ...csv },
+      mappings: mappingsFromTemplate('optout', 'publisher', {
+        sha256_mobile_phone: { primaryKey: true },
+      }),
+      createTime: created,
+      updateTime: updated,
     },
-    organization: { id: 'org_demo_retail', account: 'demo', type: 'publisher' },
-    notification: { projectId: 'demo-dmc-eu', topicId: 'demo-load-events' },
-    bqParams: { ...csv },
-    mappings: mappingsFromTemplate('optout', 'publisher', {
-      sha256_mobile_phone: { primaryKey: true },
-    }),
-    createTime: created,
-    updateTime: updated,
-  }),
-  config({
-    id: 'sample_brand:sample:sales',
-    publisherName: 'Sample Brand',
-    mode: 'INCREMENTAL',
-    patterns: {
-      preprocess: '^demo-bucket/advertiser/sales/pre/.*\\.csv$',
-      ingest: '^demo-bucket/advertiser/sales/.*\\.csv$',
+  ),
+  convention(
+    {
+      kind: 'advertiser',
+      organizationName: 'Sample Brand',
+      nestedName: 'Sample',
+      fileType: 'sales',
     },
-    destination: {
-      projectId: 'demo-dmc-eu',
-      datasetId: 'dkp_dmc_advertisers_raw_eu_dev',
-      tableId: 'sales',
+    {
+      mode: 'INCREMENTAL',
+      bqParams: { ...csv },
+      mappings: mappingsFromTemplate('sales', 'advertiser', {
+        order_id: { primaryKey: true },
+      }),
+      createTime: '2026-03-01T08:00:00.000Z',
+      updateTime: '2026-05-02T11:12:00.000Z',
     },
-    organization: { id: 'org_sample_brand', account: 'sample', type: 'advertiser' },
-    notification: { projectId: 'demo-dmc-eu', topicId: 'demo-load-events' },
-    bqParams: { ...csv },
-    mappings: mappingsFromTemplate('sales', 'advertiser', {
-      order_id: { primaryKey: true },
-    }),
-    createTime: '2026-03-01T08:00:00.000Z',
-    updateTime: '2026-05-02T11:12:00.000Z',
-  }),
-  config({
-    id: 'sample_brand:sample:blacklists',
-    publisherName: 'Sample Brand',
-    mode: 'OVERWRITE',
-    patterns: {
-      preprocess: '^demo-bucket/advertiser/blacklists/pre/.*\\.csv$',
-      ingest: '^demo-bucket/advertiser/blacklists/.*\\.csv$',
+  ),
+  convention(
+    {
+      kind: 'advertiser',
+      organizationName: 'Sample Brand',
+      nestedName: 'Sample',
+      fileType: 'blacklists',
     },
-    destination: {
-      projectId: 'demo-dmc-eu',
-      datasetId: 'dkp_dmc_advertisers_raw_eu_dev',
-      tableId: 'blacklists',
+    {
+      mode: 'OVERWRITE',
+      bqParams: { ...csv },
+      mappings: mappingsFromTemplate('blacklists', 'advertiser', {
+        sha256_mobile_phone: { primaryKey: true },
+      }),
+      createTime: created,
+      updateTime: updated,
     },
-    organization: { id: 'org_sample_brand', account: null, type: 'advertiser' },
-    notification: { projectId: 'demo-dmc-eu', topicId: 'demo-load-events' },
-    bqParams: { ...csv },
-    mappings: mappingsFromTemplate('blacklists', 'advertiser', {
-      sha256_mobile_phone: { primaryKey: true },
-    }),
-    createTime: created,
-    updateTime: updated,
-  }),
-  config({
-    id: 'sample_brand:sample:stores',
+  ),
+  convention(
+    {
+      kind: 'advertiser',
+      organizationName: 'Sample Brand',
+      nestedName: 'Sample',
+      fileType: 'stores',
+    },
+    {
+      mode: 'APPEND',
+      bqParams: { ...csv },
+      mappings: mappingsFromTemplate('stores', 'advertiser', {
+        id: { primaryKey: true },
+      }),
+      createTime: '2026-01-15T10:00:00.000Z',
+      updateTime: '2026-01-20T10:00:00.000Z',
+    },
+  ),
+  withDerived({
+    id: 'legacy_sample_stores',
     publisherName: 'Sample Brand',
     mode: 'APPEND',
     patterns: {
@@ -148,7 +157,7 @@ export const FIXTURES: LoadConfig[] = [
       datasetId: 'dkp_dmc_advertisers_raw_eu_dev',
       tableId: 'stores',
     },
-    organization: { id: 'org_sample_brand', account: null, type: 'referential' },
+    organization: { id: 'org_sample_brand', account: null, type: 'advertiser' },
     notification: { projectId: 'demo-dmc-eu', topicId: 'demo-load-events' },
     bqParams: {
       fieldDelimiter: TAB_DELIMITER,
@@ -160,7 +169,7 @@ export const FIXTURES: LoadConfig[] = [
     mappings: mappingsFromTemplate('stores', 'advertiser', {
       id: { primaryKey: true },
     }),
-    createTime: '2026-01-15T10:00:00.000Z',
-    updateTime: '2026-01-20T10:00:00.000Z',
+    createTime: '2025-11-02T10:00:00.000Z',
+    updateTime: '2025-12-01T10:00:00.000Z',
   }),
 ];
