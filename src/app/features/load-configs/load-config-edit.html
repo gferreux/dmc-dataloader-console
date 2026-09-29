@@ -13,22 +13,92 @@
       <a matButton="outlined" routerLink="/load-configs">Back to list</a>
     </header>
 
-    <dmc-validation-panel [result]="validation()" [allowSaveAnyway]="true" (saveAnyway)="save(true)" />
+    @if (legacy()) {
+      <p class="note" data-testid="legacy-note">
+        This config uses a legacy id. Stored patterns, destination, and notification stay as they
+        are. You can edit mappings, load parameters, and mode.
+      </p>
+    } @else {
+      <section class="panel section">
+        <h2 class="section-title">Identity</h2>
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Organization kind</mat-label>
+            <mat-select
+              [value]="kind()"
+              data-testid="organization-kind"
+              (selectionChange)="setKind($event)"
+            >
+              <mat-option value="publisher">Publisher</mat-option>
+              <mat-option value="advertiser">Advertiser</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <dmc-name-field
+            label="Organization name"
+            testId="organization-name"
+            [value]="organizationName()"
+            [options]="orgOptions()"
+            [error]="issue('organizationName')"
+            (valueChange)="setOrganization($event)"
+          />
+          <dmc-name-field
+            [label]="nestedLabel() + ' name'"
+            testId="nested-name"
+            [value]="nestedName()"
+            [options]="nestedOptions()"
+            [error]="issue('nestedName')"
+            (valueChange)="setNested($event)"
+          />
+          <mat-form-field appearance="outline">
+            <mat-label>File type</mat-label>
+            <mat-select
+              [value]="fileType()"
+              data-testid="file-type"
+              (selectionChange)="setFileType($event)"
+            >
+              @for (option of fileTypes(); track option) {
+                <mat-option [value]="option">{{ option }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+        @if (issue('fileType'); as message) {
+          <p class="banner" role="alert">{{ message }}</p>
+        }
+      </section>
+    }
+
+    <dmc-validation-panel
+      [result]="validation()"
+      [allowSaveAnyway]="true"
+      (saveAnyway)="save(true)"
+    />
     @if (localError(); as localError) {
       <p class="banner" role="alert">{{ localError }}</p>
     }
+    <dmc-computed-panel [result]="panel()" [pending]="deriving()" [heading]="panelHeading()" />
     @if (meta(); as meta) {
       <dmc-config-form
         [form]="form"
         [meta]="meta"
-        [lockId]="true"
         [createTime]="current()?.createTime ?? null"
         [updateTime]="current()?.updateTime ?? null"
       />
     }
     <div class="actions">
-      <button matButton="outlined" class="danger" type="button" (click)="confirmDelete()">Delete</button>
-      <button matButton="filled" type="button" [disabled]="saving()" (click)="save(false)">
+      <button matButton="outlined" class="danger" type="button" (click)="confirmDelete()">
+        Delete
+      </button>
+      <button
+        matButton="filled"
+        type="button"
+        [disabled]="
+          saving() ||
+          form.invalid ||
+          (!legacy() && (deriving() || !derived() || issues().length > 0))
+        "
+        (click)="save(false)"
+      >
         {{ saving() ? 'Saving…' : 'Save' }}
       </button>
     </div>

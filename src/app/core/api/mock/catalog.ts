@@ -2,12 +2,12 @@ import {
   BqParams,
   ImportTemplate,
   ImportType,
-  LoadConfigWrite,
   MappingTypeOption,
   Meta,
   PartnerType,
   SourceFormatOption,
   TemplateColumn,
+  TemplateDefaults,
 } from '../../models/load-config.model';
 
 /** Labels match GET /api/v1/meta. Values are the domain iota, not BigQuery types. */
@@ -37,8 +37,7 @@ export const META: Meta = {
   },
 };
 
-const PHONE =
-  'Preferred +33612345678. Also 0612345678 or 612345678 with a default dial code.';
+const PHONE = 'Preferred +33612345678. Also 0612345678 or 612345678 with a default dial code.';
 const OPTIN = '0/1 or true/false.';
 const GENDER = 'M/F or m./mr/mme/mlle/mll.';
 const DATE = 'YYYY-MM-DD preferred. Also YYYY/MM/DD, DD/MM/YYYY, DD-MM-YYYY.';
@@ -71,7 +70,12 @@ const profileColumns: TemplateColumn[] = [
   column('last_name', 'STRING', false, 'Last name.'),
   column('first_name', 'STRING', false, 'First name.'),
   column('birth_date', 'DATE', false, 'Birth date.', DATE),
-  column('address_1', 'STRING', false, 'Street address line. Add address_3 and further lines as extra STRING mappings.'),
+  column(
+    'address_1',
+    'STRING',
+    false,
+    'Street address line. Add address_3 and further lines as extra STRING mappings.',
+  ),
   column('address_2', 'STRING', false, 'Second street address line.'),
   column('city', 'STRING', false, 'City.'),
   column('zip_code', 'STRING', false, 'Postal code.'),
@@ -101,8 +105,8 @@ function defaults(
   datasetId: string,
   tableId: string,
   columns: TemplateColumn[],
-): LoadConfigWrite {
-  const mappings: LoadConfigWrite['mappings'] = {};
+): TemplateDefaults {
+  const mappings: TemplateDefaults['mappings'] = {};
   for (const column of columns) {
     mappings[column.name] = { src: column.name, type: 0 };
   }
@@ -143,7 +147,13 @@ export const TEMPLATES: ImportTemplate[] = [
   template('advertiser', 'customers', 'Advertiser customers', 'customers', [
     ...profileColumns,
     column('country', 'STRING', false, 'Country code.', 'Default FR.'),
-    column('additional_fields', 'JSON', false, 'Extra key/values for reporting drilldown.', JSON_HINT),
+    column(
+      'additional_fields',
+      'JSON',
+      false,
+      'Extra key/values for reporting drilldown.',
+      JSON_HINT,
+    ),
   ]),
   template('advertiser', 'stores', 'Advertiser stores', 'stores', [
     column('id', 'STRING', true, 'Store identifier.'),
@@ -151,14 +161,26 @@ export const TEMPLATES: ImportTemplate[] = [
     column('address', 'STRING', true, 'Street address.'),
     column('zip_code', 'STRING', true, 'Postal code.'),
     column('city', 'STRING', true, 'City.'),
-    column('country', 'STRING', false, 'Country code. Use FR when the file has no country.', 'Default FR.'),
+    column(
+      'country',
+      'STRING',
+      false,
+      'Country code. Use FR when the file has no country.',
+      'Default FR.',
+    ),
     column('longitude', 'FLOAT', false, 'Longitude in decimal degrees.'),
     column('latitude', 'FLOAT', false, 'Latitude in decimal degrees.'),
     column('website', 'STRING', false, 'Store website.'),
     column('email', 'STRING', false, 'Store email.'),
     column('phone_number', 'STRING', false, 'Store phone number.'),
     column('tags', 'STRING', false, 'Store tags.', TAGS),
-    column('additional_fields', 'JSON', false, 'Extra key/values for reporting drilldown.', JSON_HINT),
+    column(
+      'additional_fields',
+      'JSON',
+      false,
+      'Extra key/values for reporting drilldown.',
+      JSON_HINT,
+    ),
   ]),
   template('advertiser', 'sales', 'Advertiser sales', 'sales', [
     column('order_ts', 'TIMESTAMP', true, 'Order timestamp.', DATE),
@@ -179,7 +201,13 @@ export const TEMPLATES: ImportTemplate[] = [
     column('item_category', 'STRING', false, 'Item category.'),
     column('item_quantity', 'INTEGER', false, 'Item quantity.'),
     column('item_price', 'FLOAT', false, 'Item price.'),
-    column('additional_fields', 'JSON', false, 'Extra key/values for reporting drilldown.', JSON_HINT),
+    column(
+      'additional_fields',
+      'JSON',
+      false,
+      'Extra key/values for reporting drilldown.',
+      JSON_HINT,
+    ),
   ]),
 ];
 

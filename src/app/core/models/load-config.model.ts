@@ -59,13 +59,83 @@ export interface LoadConfig {
   updateTime?: string;
   partnerType?: PartnerType;
   importType?: ImportType;
+  /**
+   * Read-only. Present on GET when the id or patterns follow the convention.
+   * Values are slugs. Legacy documents omit all four.
+   */
+  kind?: PartnerType;
+  organizationName?: string;
+  nestedName?: string;
+  fileType?: ImportType;
 }
 
-/** Body sent to POST, PUT, and validate. Read-only and derived fields stay off the wire. */
-export type LoadConfigWrite = Omit<
-  LoadConfig,
-  'createTime' | 'updateTime' | 'partnerType' | 'importType'
->;
+/**
+ * Create body, and the update body when the document id is `{org}:{nested}:{fileType}`.
+ * Plumbing (id, patterns, destination, notification, organization, publisherName) stays off the wire.
+ */
+export interface LoadConfigWrite {
+  kind: PartnerType;
+  organizationName: string;
+  nestedName: string;
+  fileType: ImportType;
+  mode: LoadMode;
+  bqParams: BqParams;
+  mappings: Record<string, ColumnMapping>;
+}
+
+/** Update body for a legacy document. The server keeps stored plumbing. */
+export interface LoadConfigLegacyWrite {
+  mode: LoadMode;
+  bqParams: BqParams;
+  mappings: Record<string, ColumnMapping>;
+}
+
+export type LoadConfigUpdate = LoadConfigWrite | LoadConfigLegacyWrite;
+
+export function isIdentityWrite(body: LoadConfigUpdate): body is LoadConfigWrite {
+  return (
+    'kind' in body &&
+    'organizationName' in body &&
+    'nestedName' in body &&
+    'fileType' in body &&
+    Boolean(body.kind) &&
+    Boolean(body.organizationName?.trim()) &&
+    Boolean(body.nestedName?.trim()) &&
+    Boolean(body.fileType)
+  );
+}
+
+/** Autocomplete row. `id` is omitted for publisher bases. */
+export interface NamedRef {
+  id?: string;
+  name: string;
+  slug: string;
+}
+
+export interface OrganizationSummary extends NamedRef {
+  id: string;
+}
+
+export interface NestedSummary extends NamedRef {
+  id?: string;
+}
+
+export interface DeriveRequest {
+  kind: PartnerType;
+  organizationName: string;
+  nestedName: string;
+  fileType: ImportType;
+}
+
+export interface DeriveResult {
+  id: string;
+  publisherName: string;
+  patterns: Patterns;
+  notification: Notification;
+  destination: Destination;
+  organization: Organization;
+  warnings: FieldMessage[];
+}
 
 export interface ListQuery {
   partnerType?: string;
@@ -101,12 +171,25 @@ export interface TemplateColumn {
   formatHint?: string;
 }
 
+/** Starter document from GET /templates. The form only copies mode, bqParams, and mappings. */
+export interface TemplateDefaults {
+  mode: LoadMode;
+  bqParams: BqParams;
+  mappings: Record<string, ColumnMapping>;
+  id?: string;
+  publisherName?: string;
+  patterns?: Patterns;
+  destination?: Destination;
+  organization?: Organization;
+  notification?: Notification;
+}
+
 export interface ImportTemplate {
   partnerType: PartnerType;
   importType: ImportType;
   label: string;
   columns: TemplateColumn[];
-  defaults: LoadConfigWrite;
+  defaults: TemplateDefaults;
 }
 
 export interface MappingTypeOption {

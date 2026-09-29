@@ -1,17 +1,11 @@
-import {
-  FieldMessage,
-  LoadConfig,
-  LoadConfigWrite,
-  Meta,
-  ValidationResult,
-} from '../../models/load-config.model';
+import { FieldMessage, LoadConfig, Meta, ValidationResult } from '../../models/load-config.model';
 import { classify } from '../../utils/derive';
 
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.:-]*$/;
 const COLUMN_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export function validateConfig(
-  config: LoadConfigWrite,
+  config: LoadConfig,
   others: readonly LoadConfig[],
   meta: Meta,
 ): ValidationResult {
