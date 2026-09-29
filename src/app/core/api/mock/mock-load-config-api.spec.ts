@@ -94,8 +94,10 @@ describe('MockLoadConfigApi', () => {
     expect(derived.patterns.preprocess).toContain(
       'dkp-dmc-advertisers-raw-euw1-dev/sample_brand/wholesale/customers/',
     );
-    expect(derived.patterns.preprocess.startsWith('^')).toBe(true);
-    expect(derived.patterns.preprocess.endsWith('$')).toBe(true);
+    expect(derived.patterns.preprocess.startsWith('^')).toBe(false);
+    expect(derived.patterns.preprocess.endsWith('$')).toBe(false);
+    expect(derived.patterns.preprocess).toContain('tar.gz');
+    expect(derived.patterns.ingest.endsWith('.+')).toBe(true);
     expect(derived.organization.account).toBe('acc_wholesale');
     expect(derived.publisherName).toBe(derived.id);
     expect(derived.warnings).toEqual([]);

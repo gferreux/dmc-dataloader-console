@@ -19,10 +19,10 @@ describe('deriveLoadConfig', () => {
     expect(outcome.result.id).toBe('cafe_northwind:paris_est:sales');
     expect(outcome.result.publisherName).toBe('cafe_northwind:paris_est:sales');
     expect(outcome.result.patterns.preprocess).toBe(
-      '^dkp-dmc-advertisers-raw-euw1-dev/cafe_northwind/paris_est/sales/.+[.](csv|zip|gz|gzip|tgz|tar\\.gz|7z)$',
+      'dkp-dmc-advertisers-raw-euw1-dev/cafe_northwind/paris_est/sales/.+[.](csv|zip|gz|gzip|tgz|tar.gz|7z)',
     );
     expect(outcome.result.patterns.ingest).toBe(
-      '^dkp-dmc-advertisers-staging-euw1-dev/data/[0-9]{4}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z/cafe_northwind/paris_est/sales/.+$',
+      'dkp-dmc-advertisers-staging-euw1-dev/data/[0-9]{4}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z/cafe_northwind/paris_est/sales/.+',
     );
     expect(outcome.result.notification).toEqual({
       projectId: 'dmc-curated-inventory-dev-e6da',
@@ -66,7 +66,7 @@ describe('deriveLoadConfig', () => {
     );
     expect(optin.ok && optin.result.destination.tableId).toBe('profiles');
     expect(
-      optin.ok && optin.result.patterns.preprocess.startsWith('^dkp-dmc-publishers-raw-euw1-dev/'),
+      optin.ok && optin.result.patterns.preprocess.startsWith('dkp-dmc-publishers-raw-euw1-dev/'),
     ).toBe(true);
     expect(optout.ok && optout.result.destination).toEqual({
       projectId: 'dmc-raw-publishers-dev-c69c',

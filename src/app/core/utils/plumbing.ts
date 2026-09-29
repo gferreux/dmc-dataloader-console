@@ -17,8 +17,8 @@ const PUBLISHER_DESTINATION_PROJECT = 'dmc-raw-publishers-dev-c69c';
 const ADVERTISER_DATASET = 'dkp_dmc_advertisers_raw_eu_dev';
 const PUBLISHER_DATASET = 'dkp_dmc_publishers_raw_eu_dev';
 
-/** Extension group from derive_config.go. The dot in `tar.gz` is escaped. */
-const EXT_PATTERN = '[.](csv|zip|gz|gzip|tgz|tar\\.gz|7z)';
+/** Extension group from derive_config.go. The dot in `tar.gz` is left unescaped. */
+const EXT_PATTERN = '[.](csv|zip|gz|gzip|tgz|tar.gz|7z)';
 const TS_PATTERN = '[0-9]{4}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9]Z';
 
 const CONVENTION_ID =
@@ -181,7 +181,7 @@ export function deriveViewFromConfig(config: LoadConfig): DeriveResult {
 
 /**
  * Same rules as POST /api/v1/load-configs/derive.
- * Patterns are anchored (`^`…`$`) and `tar.gz` is escaped, matching BuildDerived.
+ * Patterns are unanchored, with no `^` or `$`, and `tar.gz` is not escaped, matching BuildDerived.
  * A stored document with the derived id produces an `id` warning, including
  * when that document is the one being previewed.
  */
@@ -461,7 +461,7 @@ function preprocessPattern(
   fileType: string,
 ): string {
   const prefix = `${bucket}/${orgSlug}/${nestedSlug}/${fileType}/`;
-  return '^' + quoteMeta(prefix) + '.+' + EXT_PATTERN + '$';
+  return quoteMeta(prefix) + '.+' + EXT_PATTERN;
 }
 
 function ingestPattern(
@@ -472,7 +472,7 @@ function ingestPattern(
 ): string {
   const head = `${bucket}/data/`;
   const tail = `/${orgSlug}/${nestedSlug}/${fileType}/`;
-  return `^${quoteMeta(head)}${TS_PATTERN}${quoteMeta(tail)}.+$`;
+  return quoteMeta(head) + TS_PATTERN + quoteMeta(tail) + '.+';
 }
 
 function quoteMeta(value: string): string {
