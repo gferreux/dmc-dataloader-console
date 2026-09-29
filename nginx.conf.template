@@ -1,0 +1,20 @@
+server {
+  listen ${PORT};
+  server_name _;
+  root /usr/share/nginx/html;
+  index index.html;
+
+  location = /assets/runtime-config.json {
+    add_header Cache-Control "no-store";
+  }
+
+  location = /whoami {
+    default_type application/json;
+    add_header Cache-Control "no-store";
+    return 200 '{"email":"$http_x_goog_authenticated_user_email","id":"$http_x_goog_authenticated_user_id"}';
+  }
+
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
+}

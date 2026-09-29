@@ -1,0 +1,46 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav
+    class="sidenav"
+    [mode]="handset() ? 'over' : 'side'"
+    [opened]="!handset() || menuOpen()"
+    (closedStart)="menuOpen.set(false)"
+  >
+    <a class="brand" routerLink="/load-configs">
+      <span class="mark">DMC</span>
+      <span class="product">Data loader</span>
+    </a>
+    <nav aria-label="Primary">
+      <a class="nav-item" routerLink="/load-configs" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">
+        <mat-icon>schema</mat-icon>
+        Import configs
+      </a>
+    </nav>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="content">
+    <header class="topbar">
+      <div class="topbar-left">
+        @if (handset()) {
+          <button matIconButton type="button" aria-label="Open navigation" (click)="toggleMenu()">
+            <mat-icon>menu</mat-icon>
+          </button>
+        }
+        <span class="topbar-title">DMC console</span>
+      </div>
+      <div class="topbar-right">
+        @if (config.useMock) {
+          <span class="mock-chip">Mock API</span>
+        }
+        @if (user(); as user) {
+          <div class="user">
+            <span class="avatar" aria-hidden="true">{{ initials(user.email) }}</span>
+            <span class="email">{{ user.email }}</span>
+          </div>
+        }
+      </div>
+    </header>
+    <main>
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

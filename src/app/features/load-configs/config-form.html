@@ -1,0 +1,184 @@
+<form class="stack" [formGroup]="form()">
+  <section class="panel section">
+    <div class="section-head">
+      <h2 class="section-title">Identity</h2>
+      <div class="kinds">
+        @if (form().controls.partnerType.value) {
+          <span class="pill">{{ form().controls.partnerType.value }}</span>
+        }
+        @if (form().controls.importType.value) {
+          <span class="pill">{{ form().controls.importType.value }}</span>
+        }
+      </div>
+    </div>
+    <div class="form-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Id</mat-label>
+        <input matInput formControlName="id" autocomplete="off" />
+        <mat-hint>Example: demo_retail:demo:sales</mat-hint>
+        @if (form().controls.id.hasError('required')) {
+          <mat-error>Id is required.</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Publisher name</mat-label>
+        <input matInput formControlName="publisherName" autocomplete="off" />
+        @if (form().controls.publisherName.hasError('required')) {
+          <mat-error>Publisher name is required.</mat-error>
+        }
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Mode</mat-label>
+        <mat-select formControlName="mode">
+          @for (mode of meta().modes; track mode) {
+            <mat-option [value]="mode">{{ mode }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <div class="flags">
+        @if (!lockId()) {
+          <button matButton="outlined" type="button" (click)="suggestId()">Suggest id</button>
+        }
+      </div>
+    </div>
+    @if (createTime() || updateTime()) {
+      <p class="muted">
+        @if (createTime()) {
+          <span>Created {{ createTime() }}</span>
+        }
+        @if (updateTime()) {
+          <span> · Updated {{ updateTime() }}</span>
+        }
+      </p>
+    }
+  </section>
+
+  <section class="panel section">
+    <h2 class="section-title">Destination and organization</h2>
+    <div class="form-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Project</mat-label>
+        <input matInput formControlName="projectId" autocomplete="off" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Dataset</mat-label>
+        <input matInput formControlName="datasetId" autocomplete="off" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Table</mat-label>
+        <input matInput formControlName="tableId" autocomplete="off" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Organization id</mat-label>
+        <input matInput formControlName="organizationId" autocomplete="off" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Account</mat-label>
+        <input matInput formControlName="organizationAccount" autocomplete="off" />
+        <mat-hint>Optional. An empty account is stored as null.</mat-hint>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Organization type</mat-label>
+        <mat-select formControlName="organizationType">
+          @for (type of organizationTypes(); track type) {
+            <mat-option [value]="type">{{ type }}</mat-option>
+          }
+        </mat-select>
+        @if (legacyOrganizationType()) {
+          <mat-hint>Legacy value. Choose advertiser or publisher before saving.</mat-hint>
+        }
+      </mat-form-field>
+    </div>
+  </section>
+
+  <section class="panel section">
+    <h2 class="section-title">Patterns</h2>
+    <div class="form-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Preprocess regex</mat-label>
+        <textarea matInput rows="2" formControlName="preprocess"></textarea>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Ingest regex</mat-label>
+        <textarea matInput rows="2" formControlName="ingest"></textarea>
+      </mat-form-field>
+    </div>
+    @if (form().hasError('pattern')) {
+      <p class="banner" role="alert">Enter a preprocess regex, an ingest regex, or both.</p>
+    }
+    <dmc-pattern-tester [ingest]="form().controls.ingest" [preprocess]="form().controls.preprocess" />
+  </section>
+
+  <section class="panel section">
+    <h2 class="section-title">BigQuery load parameters</h2>
+    <div class="form-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Field delimiter</mat-label>
+        <mat-select [value]="preset()" (selectionChange)="chooseDelimiter($event)">
+          @for (preset of presets; track preset.label) {
+            <mat-option [value]="preset.value">{{ preset.label }}</mat-option>
+          }
+          <mat-option [value]="customDelimiter">Custom</mat-option>
+        </mat-select>
+        <mat-hint>Tab is a real tab character, not the text \t.</mat-hint>
+        @if (form().controls.fieldDelimiter.invalid) {
+          <mat-error>Enter exactly one character, or choose Tab.</mat-error>
+        }
+      </mat-form-field>
+      @if (preset() === customDelimiter) {
+        <mat-form-field appearance="outline">
+          <mat-label>Custom delimiter</mat-label>
+          <input
+            matInput
+            [value]="delimiterValue()"
+            (input)="setCustomDelimiter($any($event.target).value)"
+            autocomplete="off"
+          />
+        </mat-form-field>
+      }
+      <mat-form-field appearance="outline">
+        <mat-label>Skip leading rows</mat-label>
+        <input matInput type="number" min="0" formControlName="skipLeadingRows" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Quote</mat-label>
+        <input matInput formControlName="quote" autocomplete="off" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Null marker</mat-label>
+        <input matInput formControlName="nullMarker" autocomplete="off" />
+        <mat-hint>Optional. An empty marker is stored as null.</mat-hint>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Source format</mat-label>
+        <mat-select formControlName="sourceFormat">
+          @for (format of meta().sourceFormats; track format.value) {
+            <mat-option [value]="format.value">{{ format.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </section>
+
+  <section class="panel section">
+    <h2 class="section-title">Notification</h2>
+    <div class="form-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Pub/Sub project</mat-label>
+        <input matInput formControlName="notificationProjectId" autocomplete="off" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Topic</mat-label>
+        <input matInput formControlName="notificationTopicId" autocomplete="off" />
+      </mat-form-field>
+    </div>
+  </section>
+
+  <section class="panel section">
+    <dmc-mapping-editor
+      [mappings]="form().controls.mappings"
+      [mappingTypes]="meta().mappingTypes"
+      [fieldDelimiter]="delimiterValue()"
+    />
+  </section>
+</form>

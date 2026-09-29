@@ -1,0 +1,41 @@
+.validation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dim-ssm);
+}
+
+.block {
+  border-radius: var(--border-radius-ssm);
+  padding: var(--dim-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--dim-xs);
+}
+
+.block h2 {
+  font: var(--body-sm-semibold);
+}
+
+.block ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: var(--body-sm-regular);
+}
+
+.errors {
+  background: var(--UI-DS-Semantic-Error-50);
+  color: var(--UI-DS-Semantic-Error-700);
+}
+
+.warnings {
+  background: var(--UI-DS-Semantic-Warning-50);
+  color: var(--UI-DS-Semantic-Warning-700);
+}
+
+.field {
+  font: var(--body-xs-medium);
+  margin-right: 6px;
+}

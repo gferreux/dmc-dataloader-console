@@ -1,0 +1,138 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.shell {
+  height: 100%;
+  background: var(--UI-DS-Base-White);
+}
+
+.sidenav {
+  width: 248px;
+  background: var(--UI-DS-Gray-900);
+  color: var(--UI-DS-Base-White);
+  border: 0;
+  padding: var(--dim-md) var(--dim-ssm);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: var(--dim-xs);
+  text-decoration: none;
+  color: var(--UI-DS-Base-White);
+  margin: var(--dim-xs) var(--dim-ssm) var(--dim-lg);
+}
+
+.mark {
+  font: var(--body-lg-medium);
+  letter-spacing: 0.08em;
+}
+
+.product {
+  font: var(--body-sm-regular);
+  color: var(--UI-DS-Gray-400);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--dim-ssm);
+  height: 42px;
+  padding: 0 var(--dim-sm);
+  border-radius: var(--border-radius-10);
+  text-decoration: none;
+  color: var(--UI-DS-Gray-400);
+  font: var(--body-md-medium);
+}
+
+.nav-item mat-icon {
+  color: var(--UI-DS-Gray-400);
+}
+
+.nav-item:hover {
+  background: var(--UI-DS-Gray-800);
+}
+
+.nav-item.active {
+  background: var(--UI-DS-Gray-800);
+  color: var(--UI-DS-Base-White);
+}
+
+.nav-item.active mat-icon {
+  color: var(--UI-DS-Brand-200);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--background);
+}
+
+.topbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--dim-lg);
+  background: var(--UI-DS-Base-White);
+  border-bottom: var(--border-1-gray-300);
+  flex: 0 0 auto;
+}
+
+.topbar-left,
+.topbar-right,
+.user {
+  display: flex;
+  align-items: center;
+  gap: var(--dim-ssm);
+}
+
+.topbar-title {
+  font: var(--body-md-semibold);
+  color: var(--UI-DS-Gray-800);
+}
+
+.mock-chip {
+  font: var(--body-xs-medium);
+  color: var(--UI-DS-Brand-800);
+  background: var(--UI-DS-Brand-50);
+  border: 1px solid var(--UI-DS-Brand-200);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--UI-DS-Brand-500);
+  color: var(--UI-DS-Base-White);
+  font: var(--body-xs-medium);
+}
+
+.email {
+  font: var(--body-sm-medium);
+  color: var(--UI-DS-Gray-700);
+}
+
+main {
+  flex: 1;
+  overflow: auto;
+}
+
+@media (max-width: 840px) {
+  .email {
+    display: none;
+  }
+
+  .topbar,
+  .page {
+    padding-left: var(--dim-sm);
+    padding-right: var(--dim-sm);
+  }
+}

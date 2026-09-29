@@ -1,0 +1,80 @@
+:root {
+  --font-family-inter: Inter, sans-serif;
+  --font-family-sora: 'Sora', sans-serif;
+  --font-size-12: 0.75rem;
+  --font-size-14: 0.875rem;
+  --font-size-16: 1rem;
+  --font-size-18: 1.125rem;
+  --font-size-20: 1.25rem;
+  --font-size-24: 1.5rem;
+  --font-weight-400: 400;
+  --font-weight-500: 500;
+  --font-weight-600: 600;
+  --font-weight-700: 700;
+  --line-height-130-percent: 130%;
+  --line-height-170-percent: 170%;
+  --line-height-110-percent: 110%;
+
+  --body-xs-medium: normal var(--font-weight-500) var(--font-size-12) / var(--line-height-130-percent)
+    var(--font-family-sora);
+  --body-sm-regular: normal var(--font-weight-400) var(--font-size-14) / var(--line-height-130-percent)
+    var(--font-family-sora);
+  --body-sm-medium: normal var(--font-weight-500) var(--font-size-14) / var(--line-height-130-percent)
+    var(--font-family-sora);
+  --body-sm-semibold: normal var(--font-weight-600) var(--font-size-14) / var(--line-height-130-percent)
+    var(--font-family-sora);
+  --body-md-medium: normal var(--font-weight-500) var(--font-size-16) / var(--line-height-170-percent)
+    var(--font-family-sora);
+  --body-md-semibold: normal var(--font-weight-600) var(--font-size-16) / var(--line-height-170-percent)
+    var(--font-family-sora);
+  --body-lg-medium: normal var(--font-weight-500) var(--font-size-18) / var(--line-height-130-percent)
+    var(--font-family-sora);
+  --title-h4-semibold: normal var(--font-weight-600) var(--font-size-24) / var(--line-height-110-percent)
+    var(--font-family-sora);
+
+  --dim-2: 2px;
+  --dim-xxs: 4px;
+  --dim-xs: 8px;
+  --dim-ssm: 12px;
+  --dim-sm: 16px;
+  --dim-md: 24px;
+  --dim-lg: 32px;
+
+  --UI-DS-Base-White: #ffffff;
+  --UI-DS-Gray-25: #fcfcfd;
+  --UI-DS-Gray-50: #f9fafb;
+  --UI-DS-Gray-100: #f2f4f7;
+  --UI-DS-Gray-200: #e4e7ec;
+  --UI-DS-Gray-300: #d0d5dd;
+  --UI-DS-Gray-400: #98a2b3;
+  --UI-DS-Gray-500: #667085;
+  --UI-DS-Gray-600: #475467;
+  --UI-DS-Gray-700: #344054;
+  --UI-DS-Gray-800: #1d2939;
+  --UI-DS-Gray-900: #101828;
+  --UI-DS-Brand-50: #f5f5ff;
+  --UI-DS-Brand-100: #ebeaff;
+  --UI-DS-Brand-200: #d9d9ff;
+  --UI-DS-Brand-500: #706ef5;
+  --UI-DS-Brand-600: #5e5ce5;
+  --UI-DS-Brand-700: #3f3dd9;
+  --UI-DS-Brand-800: #2e2c9e;
+  --UI-DS-Semantic-Error-50: #fef3f2;
+  --UI-DS-Semantic-Error-100: #fee4e2;
+  --UI-DS-Semantic-Error-600: #d92d20;
+  --UI-DS-Semantic-Error-700: #b42318;
+  --UI-DS-Semantic-Warning-50: #fffaeb;
+  --UI-DS-Semantic-Warning-700: #b54708;
+  --UI-DS-Semantic-Success-50: #ecfdf3;
+  --UI-DS-Semantic-Success-700: #027a48;
+
+  --border-1-gray-200: 1px solid var(--UI-DS-Gray-200);
+  --border-1-gray-300: 1px solid var(--UI-DS-Gray-300);
+  --border-radius-xs: 8px;
+  --border-radius-ssm: 12px;
+  --border-radius-10: 10px;
+  --shadow-xs: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(16, 24, 40, 0.1), 0 1px 2px 0 rgba(16, 24, 40, 0.06);
+  --shadow-xl: 0 20px 24px -4px rgba(16, 24, 40, 0.1), 0 8px 8px -4px rgba(16, 24, 40, 0.04);
+  --background: #f7f7f7;
+}

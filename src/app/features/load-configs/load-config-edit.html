@@ -1,0 +1,36 @@
+<div class="page">
+  @if (loading()) {
+    <p class="muted">Loading config…</p>
+  } @else if (error(); as error) {
+    <p class="banner" role="alert">{{ error }}</p>
+    <a matButton="outlined" routerLink="/load-configs">Back to list</a>
+  } @else if (form(); as form) {
+    <header class="page-header">
+      <div>
+        <h1>Edit import config</h1>
+        <p class="lede mono">{{ current()?.id }}</p>
+      </div>
+      <a matButton="outlined" routerLink="/load-configs">Back to list</a>
+    </header>
+
+    <dmc-validation-panel [result]="validation()" [allowSaveAnyway]="true" (saveAnyway)="save(true)" />
+    @if (localError(); as localError) {
+      <p class="banner" role="alert">{{ localError }}</p>
+    }
+    @if (meta(); as meta) {
+      <dmc-config-form
+        [form]="form"
+        [meta]="meta"
+        [lockId]="true"
+        [createTime]="current()?.createTime ?? null"
+        [updateTime]="current()?.updateTime ?? null"
+      />
+    }
+    <div class="actions">
+      <button matButton="outlined" class="danger" type="button" (click)="confirmDelete()">Delete</button>
+      <button matButton="filled" type="button" [disabled]="saving()" (click)="save(false)">
+        {{ saving() ? 'Saving…' : 'Save' }}
+      </button>
+    </div>
+  }
+</div>

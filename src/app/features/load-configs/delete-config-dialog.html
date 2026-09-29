@@ -1,0 +1,11 @@
+<h2 mat-dialog-title>Delete import config</h2>
+<mat-dialog-content>
+  <div class="icon" aria-hidden="true"><mat-icon>delete</mat-icon></div>
+  <p>
+    Delete <strong class="mono">{{ data.id }}</strong> ({{ data.publisherName }})? This cannot be undone.
+  </p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button matButton="outlined" type="button" (click)="close()">Cancel</button>
+  <button matButton="filled" class="danger" type="button" (click)="close('delete')">Delete</button>
+</mat-dialog-actions>

@@ -1,0 +1,39 @@
+.section {
+  padding: var(--dim-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--dim-sm);
+}
+
+.section-head,
+.kinds,
+.flags {
+  display: flex;
+  align-items: center;
+  gap: var(--dim-xs);
+  flex-wrap: wrap;
+}
+
+.section-head {
+  justify-content: space-between;
+}
+
+.pill {
+  font: var(--body-xs-medium);
+  text-transform: capitalize;
+  color: var(--UI-DS-Brand-800);
+  background: var(--UI-DS-Brand-50);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.flags {
+  min-height: 56px;
+}
+
+.banner {
+  padding: var(--dim-sm);
+  background: var(--UI-DS-Semantic-Error-50);
+  color: var(--UI-DS-Semantic-Error-700);
+  border-radius: var(--border-radius-ssm);
+}

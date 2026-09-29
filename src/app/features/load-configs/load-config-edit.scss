@@ -1,0 +1,12 @@
+.actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--dim-xs);
+}
+
+.banner {
+  padding: var(--dim-sm);
+  background: var(--UI-DS-Semantic-Error-50);
+  color: var(--UI-DS-Semantic-Error-700);
+  border-radius: var(--border-radius-ssm);
+}
