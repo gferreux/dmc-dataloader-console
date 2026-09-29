@@ -85,11 +85,6 @@ function quoteChar(control: AbstractControl): ValidationErrors | null {
   return Array.from(String(control.value ?? '')).length <= 1 ? null : { quoteChar: true };
 }
 
-function atLeastOnePattern(control: AbstractControl): ValidationErrors | null {
-  const value = control.value as { preprocess?: string; ingest?: string };
-  return value.preprocess?.trim() || value.ingest?.trim() ? null : { pattern: true };
-}
-
 export function createMappingGroup(draft?: Partial<MappingDraft>): MappingFormGroup {
   return new FormGroup<MappingFormControls>({
     uid: new FormControl(crypto.randomUUID(), { nonNullable: true }),
@@ -121,8 +116,14 @@ export function createLoadConfigForm(config?: LoadConfig): LoadConfigForm {
       mode: new FormControl(config?.mode ?? 'APPEND', { nonNullable: true, validators: [Validators.required] }),
       partnerType: new FormControl(config?.partnerType ?? '', { nonNullable: true }),
       importType: new FormControl(config?.importType ?? '', { nonNullable: true }),
-      preprocess: new FormControl(config?.patterns.preprocess ?? '', { nonNullable: true }),
-      ingest: new FormControl(config?.patterns.ingest ?? '', { nonNullable: true }),
+      preprocess: new FormControl(config?.patterns.preprocess ?? '', {
+        nonNullable: true,
+        validators: [requiredText()],
+      }),
+      ingest: new FormControl(config?.patterns.ingest ?? '', {
+        nonNullable: true,
+        validators: [requiredText()],
+      }),
       projectId: new FormControl(config?.destination.projectId ?? '', {
         nonNullable: true,
         validators: [requiredText()],
@@ -135,14 +136,26 @@ export function createLoadConfigForm(config?: LoadConfig): LoadConfigForm {
         nonNullable: true,
         validators: [requiredText()],
       }),
-      organizationId: new FormControl(config?.organization.id ?? '', { nonNullable: true }),
-      organizationAccount: new FormControl(config?.organization.account ?? '', { nonNullable: true }),
+      organizationId: new FormControl(config?.organization.id ?? '', {
+        nonNullable: true,
+        validators: [requiredText()],
+      }),
+      organizationAccount: new FormControl(config?.organization.account ?? '', {
+        nonNullable: true,
+        validators: [requiredText()],
+      }),
       organizationType: new FormControl(config?.organization.type ?? '', {
         nonNullable: true,
         validators: [requiredText()],
       }),
-      notificationProjectId: new FormControl(config?.notification.projectId ?? '', { nonNullable: true }),
-      notificationTopicId: new FormControl(config?.notification.topicId ?? '', { nonNullable: true }),
+      notificationProjectId: new FormControl(config?.notification.projectId ?? '', {
+        nonNullable: true,
+        validators: [requiredText()],
+      }),
+      notificationTopicId: new FormControl(config?.notification.topicId ?? '', {
+        nonNullable: true,
+        validators: [requiredText()],
+      }),
       fieldDelimiter: new FormControl(config?.bqParams.fieldDelimiter ?? ',', {
         nonNullable: true,
         validators: [singleCharacter],
@@ -159,7 +172,6 @@ export function createLoadConfigForm(config?: LoadConfig): LoadConfigForm {
       }),
       mappings: new FormArray<MappingFormGroup>([]),
     },
-    { validators: [atLeastOnePattern] },
   );
 }
 

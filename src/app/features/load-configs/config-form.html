@@ -71,11 +71,16 @@
       <mat-form-field appearance="outline">
         <mat-label>Organization id</mat-label>
         <input matInput formControlName="organizationId" autocomplete="off" />
+        @if (form().controls.organizationId.hasError('required')) {
+          <mat-error>Organization id is required.</mat-error>
+        }
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Account</mat-label>
         <input matInput formControlName="organizationAccount" autocomplete="off" />
-        <mat-hint>Optional. An empty account is stored as null.</mat-hint>
+        @if (form().controls.organizationAccount.hasError('required')) {
+          <mat-error>Account is required.</mat-error>
+        }
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Organization type</mat-label>
@@ -97,15 +102,18 @@
       <mat-form-field appearance="outline">
         <mat-label>Preprocess regex</mat-label>
         <textarea matInput rows="2" formControlName="preprocess"></textarea>
+        @if (form().controls.preprocess.hasError('required')) {
+          <mat-error>Preprocess regex is required.</mat-error>
+        }
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Ingest regex</mat-label>
         <textarea matInput rows="2" formControlName="ingest"></textarea>
+        @if (form().controls.ingest.hasError('required')) {
+          <mat-error>Ingest regex is required.</mat-error>
+        }
       </mat-form-field>
     </div>
-    @if (form().hasError('pattern')) {
-      <p class="banner" role="alert">Enter a preprocess regex, an ingest regex, or both.</p>
-    }
     <dmc-pattern-tester [ingest]="form().controls.ingest" [preprocess]="form().controls.preprocess" />
   </section>
 
@@ -166,10 +174,16 @@
       <mat-form-field appearance="outline">
         <mat-label>Pub/Sub project</mat-label>
         <input matInput formControlName="notificationProjectId" autocomplete="off" />
+        @if (form().controls.notificationProjectId.hasError('required')) {
+          <mat-error>Pub/Sub project is required.</mat-error>
+        }
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Topic</mat-label>
         <input matInput formControlName="notificationTopicId" autocomplete="off" />
+        @if (form().controls.notificationTopicId.hasError('required')) {
+          <mat-error>Topic is required.</mat-error>
+        }
       </mat-form-field>
     </div>
   </section>
