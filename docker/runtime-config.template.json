@@ -1,0 +1,4 @@
+{
+  "apiBaseUrl": "${API_BASE_URL}",
+  "useMock": ${USE_MOCK}
+}

@@ -1,0 +1,35 @@
+<section class="tester">
+  <div class="tester-head">
+    <h3 class="section-title">Pattern tester</h3>
+    <div class="tester-actions">
+      <button matButton="outlined" type="button" (click)="use('ingest')">Use ingest</button>
+      <button matButton="outlined" type="button" (click)="use('preprocess')">Use preprocess</button>
+    </div>
+  </div>
+  <div class="form-grid">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Pattern</mat-label>
+      <input matInput [(ngModel)]="pattern" name="pattern" autocomplete="off" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Sample path (bucket/object)</mat-label>
+      <input matInput [(ngModel)]="path" name="path" autocomplete="off" />
+    </mat-form-field>
+  </div>
+  <button matButton="filled" type="button" [disabled]="running() || !pattern || !path" (click)="run()">
+    {{ running() ? 'Testing…' : 'Test pattern' }}
+  </button>
+  @if (error(); as error) {
+    <p class="result error" role="alert">{{ error }}</p>
+  }
+  @if (result(); as result) {
+    <p class="result" role="status">
+      This pattern {{ result.matches ? 'matches' : 'does not match' }} the path.
+      @if (result.matchingConfigId) {
+        The loader would pick <span class="mono">{{ result.matchingConfigId }}</span>.
+      } @else {
+        No active config matches this path.
+      }
+    </p>
+  }
+</section>

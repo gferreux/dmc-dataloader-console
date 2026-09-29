@@ -1,0 +1,30 @@
+@if (result(); as result) {
+  @if (result.errors.length || result.warnings.length) {
+    <section class="validation" aria-live="polite">
+      @if (result.errors.length) {
+        <div class="block errors">
+          <h2>Errors</h2>
+          <p>Save is blocked until these are fixed.</p>
+          <ul>
+            @for (issue of result.errors; track issue.field + issue.message) {
+              <li><span class="field">{{ issue.field }}</span> {{ issue.message }}</li>
+            }
+          </ul>
+        </div>
+      }
+      @if (result.warnings.length) {
+        <div class="block warnings">
+          <h2>Warnings</h2>
+          <ul>
+            @for (issue of result.warnings; track issue.field + issue.message) {
+              <li><span class="field">{{ issue.field }}</span> {{ issue.message }}</li>
+            }
+          </ul>
+          @if (allowSaveAnyway() && !result.errors.length) {
+            <button matButton="outlined" type="button" (click)="saveAnyway.emit()">Save anyway</button>
+          }
+        </div>
+      }
+    </section>
+  }
+}

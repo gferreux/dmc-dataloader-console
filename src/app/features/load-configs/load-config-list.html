@@ -1,0 +1,104 @@
+<div class="page">
+  <header class="page-header">
+    <div>
+      <h1>Import configs</h1>
+      <p class="lede">Load configs tell the data loader which CSV files land in which BigQuery table.</p>
+    </div>
+    <a matButton="filled" routerLink="/load-configs/new">New config</a>
+  </header>
+
+  <section class="panel filters">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Partner</mat-label>
+      <mat-select [formControl]="filters.controls.partnerType">
+        <mat-option value="">All</mat-option>
+        @for (partner of meta()?.partnerTypes ?? []; track partner) {
+          <mat-option [value]="partner">{{ partner }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Import</mat-label>
+      <mat-select [formControl]="filters.controls.importType">
+        <mat-option value="">All</mat-option>
+        @for (kind of importOptions(); track kind) {
+          <mat-option [value]="kind">{{ kind }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>State</mat-label>
+      <mat-select [formControl]="filters.controls.status">
+        <mat-option value="active">Active</mat-option>
+        <mat-option value="deactivated">Deactivated</mat-option>
+        <mat-option value="all">All</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="search" subscriptSizing="dynamic">
+      <mat-label>Search</mat-label>
+      <input matInput [formControl]="filters.controls.q" placeholder="Id, partner or table" />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+  </section>
+
+  @if (error(); as error) {
+    <p class="banner" role="alert">{{ error }}</p>
+  }
+
+  <section class="panel">
+    @if (loading()) {
+      <p class="empty">Loading configs…</p>
+    } @else if (!items().length) {
+      <p class="empty">No import configs match these filters.</p>
+    } @else {
+      <div class="dmc-table-wrap">
+        <table class="dmc-table">
+          <caption class="sr-only">Import configs</caption>
+          <thead>
+            <tr>
+              <th scope="col">Id</th>
+              <th scope="col">Partner</th>
+              <th scope="col">Import</th>
+              <th scope="col">Destination</th>
+              <th scope="col">Mode</th>
+              <th scope="col">Active</th>
+              <th scope="col"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of items(); track row.id) {
+              <tr>
+                <td><a class="mono" [routerLink]="['/load-configs', row.id]">{{ row.id }}</a></td>
+                <td>
+                  <div class="partner">
+                    <span>{{ row.publisherName }}</span>
+                    <span class="pill">{{ row.partnerType }}</span>
+                  </div>
+                </td>
+                <td><span class="pill">{{ row.importType }}</span></td>
+                <td class="mono" [attr.title]="destination(row)">
+                  {{ row.destination.datasetId }}.{{ row.destination.tableId }}
+                </td>
+                <td>{{ row.mode }}</td>
+                <td>
+                  <mat-slide-toggle
+                    [checked]="!row.deactivated"
+                    [disabled]="savingId() === row.id"
+                    [aria-label]="'Active state for ' + row.id"
+                    (change)="setActive(row, $event)"
+                  />
+                </td>
+                <td class="row-actions">
+                  <a matButton="text" [routerLink]="['/load-configs', row.id]">Edit</a>
+                  <button matIconButton type="button" [attr.aria-label]="'Delete ' + row.id" (click)="confirmDelete(row)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</div>

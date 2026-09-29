@@ -1,0 +1,188 @@
+@use '@angular/material' as mat;
+@use 'styles/tokens';
+
+html {
+  color-scheme: light;
+  @include mat.theme(
+    (
+      color: (
+        theme-type: light,
+        primary: mat.$violet-palette,
+        tertiary: mat.$cyan-palette,
+      ),
+      typography: (
+        plain-family: ('Sora', sans-serif),
+        brand-family: ('Sora', sans-serif),
+        bold-weight: 600,
+        medium-weight: 500,
+        regular-weight: 400,
+      ),
+      density: 0,
+    )
+  );
+}
+
+:root {
+  --mat-sys-primary: #706ef5;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: #ebeaff;
+  --mat-sys-on-primary-container: #24237d;
+  --mat-sys-surface: #f7f7f7;
+  --mat-sys-on-surface: #101828;
+  --mat-sys-outline: #d0d5dd;
+  --mat-sys-error: #d92d20;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family-inter);
+  color: var(--UI-DS-Gray-900);
+  background: var(--UI-DS-Gray-100);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--UI-DS-Brand-700);
+}
+
+button[matButton],
+a[matButton] {
+  border-radius: var(--border-radius-10);
+  font-family: var(--font-family-sora);
+}
+
+button.danger[matButton] {
+  --mat-button-filled-container-color: var(--UI-DS-Semantic-Error-600);
+  background-color: var(--UI-DS-Semantic-Error-600);
+  color: var(--UI-DS-Base-White);
+}
+
+.page {
+  padding: var(--dim-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--dim-md);
+  min-height: 100%;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--dim-sm);
+}
+
+.page-header h1 {
+  font: var(--title-h4-semibold);
+  color: var(--UI-DS-Gray-900);
+}
+
+.lede {
+  margin-top: var(--dim-xxs);
+  font: var(--body-sm-regular);
+  color: var(--UI-DS-Gray-600);
+}
+
+.panel {
+  background: var(--UI-DS-Base-White);
+  border: var(--border-1-gray-200);
+  border-radius: var(--border-radius-ssm);
+  box-shadow: var(--shadow-xs);
+}
+
+.section-title {
+  font: var(--body-md-semibold);
+  color: var(--UI-DS-Gray-900);
+}
+
+.muted {
+  font: var(--body-sm-regular);
+  color: var(--UI-DS-Gray-600);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--dim-ssm) var(--dim-sm);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dim-md);
+}
+
+.dmc-table-wrap {
+  overflow: auto;
+}
+
+.dmc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--body-sm-regular);
+}
+
+.dmc-table th {
+  text-align: left;
+  background: var(--UI-DS-Gray-100);
+  color: var(--UI-DS-Gray-800);
+  font: var(--body-xs-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: var(--dim-ssm) var(--dim-sm);
+  border-bottom: var(--border-1-gray-300);
+  white-space: nowrap;
+}
+
+.dmc-table td {
+  padding: var(--dim-ssm) var(--dim-sm);
+  border-bottom: var(--border-1-gray-200);
+  vertical-align: middle;
+  color: var(--UI-DS-Gray-800);
+}
+
+.dmc-table tbody tr:hover {
+  background: var(--UI-DS-Gray-50);
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mat-mdc-dialog-surface {
+  border-radius: var(--border-radius-ssm) !important;
+}
+
+.dmc-snackbar {
+  --mat-snack-bar-container-color: var(--UI-DS-Gray-900);
+}

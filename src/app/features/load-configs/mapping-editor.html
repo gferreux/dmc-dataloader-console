@@ -1,0 +1,152 @@
+<section class="mapping">
+  <div class="mapping-head">
+    <div>
+      <h2 class="section-title">Column mappings</h2>
+      <p class="muted">Each BigQuery column maps to a CSV column or a SQL expression such as SUBSTR(...).</p>
+    </div>
+    <button matButton="outlined" type="button" data-testid="add-column" (click)="addRow()">
+      <mat-icon>add</mat-icon>
+      Add column
+    </button>
+  </div>
+
+  <div class="paste">
+    <mat-form-field appearance="outline" class="paste-field" subscriptSizing="dynamic">
+      <mat-label>Paste a CSV header</mat-label>
+      <textarea
+        matInput
+        rows="2"
+        data-testid="header-paste"
+        [value]="headerLine()"
+        (input)="onHeaderInput($any($event.target).value)"
+        placeholder="email,mobile_phone,first_name"
+      ></textarea>
+    </mat-form-field>
+    @if (suggestions().length) {
+      <div class="suggestions">
+        <p class="muted">{{ suggestions().length }} empty source{{ suggestions().length === 1 ? '' : 's' }} can be filled.</p>
+        <ul>
+          @for (suggestion of suggestions(); track suggestion.column) {
+            <li><span class="mono">{{ suggestion.column }}</span> ← {{ suggestion.src }}</li>
+          }
+        </ul>
+        <button matButton="filled" type="button" data-testid="apply-suggestions" (click)="applySuggestions()">
+          Apply suggestions
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (duplicateNames().length) {
+    <p class="dupes" role="alert">Duplicate target columns: {{ duplicateNames().join(', ') }}</p>
+  }
+
+  <div class="dmc-table-wrap">
+    <table class="dmc-table mapping-table">
+      <caption class="sr-only">Target BigQuery columns</caption>
+      <thead>
+        <tr>
+          <th scope="col"><span class="sr-only">Reorder</span></th>
+          <th scope="col">Target column</th>
+          <th scope="col">Source</th>
+          <th scope="col">Type</th>
+          <th scope="col"><span matTooltip="Primary key">PK</span></th>
+          <th scope="col"><span matTooltip="Partition key">Partition</span></th>
+          <th scope="col"><span matTooltip="Use in the delete filter">Delete</span></th>
+          <th scope="col"><span matTooltip="Required partition filter">Filter</span></th>
+          <th scope="col"><span class="sr-only">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody cdkDropList (cdkDropListDropped)="drop($event)">
+        @for (row of rows(); track row.controls.uid.value; let index = $index) {
+          <tr cdkDrag>
+            <td>
+              <button
+                matIconButton
+                type="button"
+                cdkDragHandle
+                [attr.aria-label]="'Drag ' + (row.controls.column.value || 'new column')"
+              >
+                <mat-icon>drag_indicator</mat-icon>
+              </button>
+            </td>
+            <td>
+              <div class="column-name">
+                <input class="bare" [formControl]="row.controls.column" aria-label="Target column name" />
+                @if (row.controls.required.value) {
+                  <span class="required">Required</span>
+                }
+              </div>
+              @if (row.controls.formatHint.value) {
+                <p class="hint">{{ row.controls.formatHint.value }}</p>
+              }
+            </td>
+            <td>
+              <input class="bare src" [formControl]="row.controls.src" aria-label="Source column or SQL expression" />
+              @if (row.controls.src.invalid && row.controls.src.touched) {
+                <p class="hint error">Source is required.</p>
+              }
+            </td>
+            <td>
+              <select class="bare" [formControl]="row.controls.type" aria-label="BigQuery type">
+                @for (type of mappingTypes(); track type.value) {
+                  <option [ngValue]="type.value">{{ type.label }}</option>
+                }
+              </select>
+            </td>
+            <td>
+              <mat-checkbox [formControl]="row.controls.primaryKey" [aria-label]="'Primary key for ' + row.controls.column.value" />
+            </td>
+            <td>
+              <mat-checkbox
+                [formControl]="row.controls.isPartitionKey"
+                [aria-label]="'Partition key for ' + row.controls.column.value"
+              />
+            </td>
+            <td>
+              <mat-checkbox
+                [formControl]="row.controls.useInDeleteFilter"
+                [aria-label]="'Delete filter for ' + row.controls.column.value"
+              />
+            </td>
+            <td>
+              <mat-checkbox
+                [formControl]="row.controls.isRequiredPartitionFilter"
+                [aria-label]="'Required partition filter for ' + row.controls.column.value"
+              />
+            </td>
+            <td class="actions">
+              <button
+                matIconButton
+                type="button"
+                [attr.data-testid]="'move-up-' + index"
+                [disabled]="index === 0"
+                [attr.aria-label]="'Move ' + (row.controls.column.value || 'column') + ' up'"
+                (click)="move(index, -1)"
+              >
+                <mat-icon>arrow_upward</mat-icon>
+              </button>
+              <button
+                matIconButton
+                type="button"
+                [disabled]="index === rows().length - 1"
+                [attr.aria-label]="'Move ' + (row.controls.column.value || 'column') + ' down'"
+                (click)="move(index, 1)"
+              >
+                <mat-icon>arrow_downward</mat-icon>
+              </button>
+              <button
+                matIconButton
+                type="button"
+                [attr.aria-label]="'Remove ' + (row.controls.column.value || 'column')"
+                (click)="remove(index)"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
