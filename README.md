@@ -13,7 +13,7 @@ The API is [dmc-dataloader-api](https://github.com/gferreux/dmc-dataloader-api).
 
 ## Mock mode
 
-Mock mode is the default. `public/assets/runtime-config.json` ships with `useMock: true`, and the app talks to an in-memory API with small fictional fixtures (Demo Retail, Sample Brand). No backend is required.
+Mock mode is the default. `public/assets/runtime-config.json` ships with `useMock: true`, and the app talks to an in-memory API with small fictional fixtures (Demo Retail, Sample Brand). No backend is required. The SFTP accounts screen uses the same switch. Its mock includes the user `demo_retail` with the base `demo_fr`.
 
 ```bash
 npm install
@@ -111,6 +111,16 @@ The create and edit flow follows `dmc-dataloader-api` `api/openapi.yaml` (`LoadC
 - Mapping order is JSON key order. A Go map or Firestore map may not keep it.
 - Mock template starters still carry a destination in `defaults` for the templates endpoint. The form copies mode, `bqParams`, and mappings only.
 - Field delimiter Tab is the single character U+0009. The form rejects the two-character text `\t`. The API only warns about that text.
+
+## SFTP accounts
+
+The SFTP accounts screen creates an SFTPGo user, or adds a client base to an existing one. It calls the same API under `/api/v1`:
+
+- `GET /api/v1/sftp-accounts/config` returns `{configured, clientTypes, buckets}`. Publisher subfolders are `optin`, `optout`, and `stop`. Advertiser subfolders are `blacklists`, `customers`, `stores`, and `sales`. When `configured` is false, the screen explains that SFTPGo is not configured and does not show the form.
+- `GET /api/v1/sftp-accounts/{username}` returns `{username, exists, bucket?, virtualFolders, bases}`. An unknown user is 200 with `exists: false`.
+- `POST /api/v1/sftp-accounts/preview` is a dry run. The body is `{user, base, clientType, passwordMode?, publicKeys?}`. The response describes the bucket, each folder as `create` or `exists`, and the user action `create`, `update`, or `unchanged`.
+- `POST /api/v1/sftp-accounts` uses the same body. The response reports folders created and already present, `userAction` of `created`, `updated`, or `unchanged`, and `verified`. Status 201 means the user was created. A generated password is returned only on that create, shown once, and kept out of the URL, logs, and browser storage.
+- 422 is a validation error, 409 is a bucket mismatch, 502 is an SFTPGo error, and 503 means SFTPGo is not configured. The screen shows those as inline messages. The error envelope is the existing `{error: {code, message, details}}` shape.
 
 ## Open questions
 

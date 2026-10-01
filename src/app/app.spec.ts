@@ -25,6 +25,7 @@ describe('App', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Import configs');
+    expect(compiled.textContent).toContain('SFTP accounts');
     expect(compiled.textContent).toContain('Mock API');
   });
 });
