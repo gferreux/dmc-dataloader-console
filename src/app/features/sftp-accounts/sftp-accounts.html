@@ -1,0 +1,345 @@
+<div class="page">
+  <header class="page-header">
+    <div>
+      <h1>SFTP accounts</h1>
+      <p class="lede">
+        Create an SFTPGo user, or add a client base to an existing user. Folders follow the
+        publisher or advertiser layout.
+      </p>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <p class="muted">Loading SFTP settings…</p>
+  } @else if (notConfigured()) {
+    <section class="panel empty-state" data-testid="sftp-not-configured">
+      <h2>SFTPGo is not configured on the server</h2>
+      <p class="muted">Account creation is unavailable until the API has SFTPGo credentials.</p>
+    </section>
+  } @else if (loadError(); as loadError) {
+    <p class="banner" role="alert">{{ loadError }}</p>
+  } @else {
+    @if (config.useMock) {
+      <p class="muted">
+        Mock mode includes the existing user <span class="mono">{{ existingUser }}</span> with the
+        base <span class="mono">{{ existingBase }}</span
+        >.
+      </p>
+    }
+
+    <form class="stack" [formGroup]="form" autocomplete="off" (ngSubmit)="requestPreview()">
+      <fieldset class="stack fields" [disabled]="phase() === 'result' || busy()">
+        <section class="panel section">
+          <h2 class="section-title">Account</h2>
+          <div class="form-grid">
+            <div class="field">
+              <mat-form-field appearance="outline">
+                <mat-label>SFTP user name</mat-label>
+                <input
+                  matInput
+                  formControlName="user"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  data-testid="sftp-user"
+                />
+                <mat-hint>{{ nameHint }}</mat-hint>
+                @if (form.controls.user.hasError('required') && form.controls.user.touched) {
+                  <mat-error>Enter an SFTP user name.</mat-error>
+                } @else if (form.controls.user.hasError('sftpName') && form.controls.user.touched) {
+                  <mat-error>{{ nameError }}</mat-error>
+                }
+              </mat-form-field>
+              @if (fieldErrors().user) {
+                <p class="field-error" role="alert">{{ fieldErrors().user }}</p>
+              }
+            </div>
+            <div class="field">
+              <mat-form-field appearance="outline">
+                <mat-label>Client base name</mat-label>
+                <input
+                  matInput
+                  formControlName="base"
+                  autocomplete="off"
+                  autocapitalize="off"
+                  spellcheck="false"
+                  data-testid="sftp-base"
+                />
+                <mat-hint>{{ nameHint }}</mat-hint>
+                @if (form.controls.base.hasError('required') && form.controls.base.touched) {
+                  <mat-error>Enter a client base name.</mat-error>
+                } @else if (form.controls.base.hasError('sftpName') && form.controls.base.touched) {
+                  <mat-error>{{ nameError }}</mat-error>
+                }
+              </mat-form-field>
+              @if (fieldErrors().base) {
+                <p class="field-error" role="alert">{{ fieldErrors().base }}</p>
+              }
+            </div>
+          </div>
+
+          @if (checking()) {
+            <p class="muted">Checking this user…</p>
+          } @else if (lookup(); as lookup) {
+            @if (lookup.exists) {
+              <p class="notice" role="status" data-testid="existing-account">
+                This account already exists. A new base will be added to it. Current bases:
+                {{ lookup.bases.length ? lookup.bases.join(', ') : 'none' }}.
+              </p>
+            }
+          }
+          @if (lookupError(); as lookupError) {
+            <p class="banner" role="alert">{{ lookupError }}</p>
+          }
+        </section>
+
+        <section class="panel section">
+          <h2 class="section-title">Client type</h2>
+          <div class="kind-layout" role="group" aria-label="Client type">
+            <button
+              type="button"
+              class="kind-card"
+              [class.selected]="form.controls.clientType.value === 'publisher'"
+              [attr.aria-pressed]="form.controls.clientType.value === 'publisher'"
+              data-testid="client-publisher"
+              (click)="selectClient('publisher')"
+            >
+              <span>Publisher</span>
+              <span class="muted">optin, optout, and stop</span>
+            </button>
+            <button
+              type="button"
+              class="kind-card"
+              [class.selected]="form.controls.clientType.value === 'advertiser'"
+              [attr.aria-pressed]="form.controls.clientType.value === 'advertiser'"
+              data-testid="client-advertiser"
+              (click)="selectClient('advertiser')"
+            >
+              <span>Advertiser</span>
+              <span class="muted">blacklists, customers, stores, and sales</span>
+            </button>
+          </div>
+          @if (form.controls.clientType.invalid && form.controls.clientType.touched) {
+            <p class="field-error" role="alert">Choose a publisher or an advertiser.</p>
+          } @else if (fieldErrors().clientType) {
+            <p class="field-error" role="alert">{{ fieldErrors().clientType }}</p>
+          }
+          @if (folderPaths().length) {
+            <div>
+              <h3 class="folder-heading">Folders</h3>
+              <ul class="folders">
+                @for (path of folderPaths(); track path) {
+                  <li class="mono">{{ path }}</li>
+                }
+              </ul>
+            </div>
+          }
+        </section>
+
+        <details class="panel advanced">
+          <summary>Advanced</summary>
+          <div class="advanced-body">
+            <p class="muted">
+              A new user needs a generated password or at least one public key. An existing user's
+              password is left unchanged.
+            </p>
+            <mat-form-field appearance="outline">
+              <mat-label>Password</mat-label>
+              <mat-select formControlName="passwordMode" data-testid="password-mode">
+                <mat-option value="generate">Generate a password</mat-option>
+                <mat-option value="none">No password</mat-option>
+              </mat-select>
+              <mat-hint>Generate is the default.</mat-hint>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="keys">
+              <mat-label>SSH public keys</mat-label>
+              <textarea
+                matInput
+                rows="4"
+                formControlName="publicKeys"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                data-testid="public-keys"
+              ></textarea>
+              <mat-hint>Optional. One key per line.</mat-hint>
+            </mat-form-field>
+            @if (form.hasError('loginMethod') && (form.touched || form.controls.publicKeys.dirty)) {
+              <p class="field-error" role="alert">{{ loginError }}</p>
+            } @else if (fieldErrors().publicKeys) {
+              <p class="field-error" role="alert">{{ fieldErrors().publicKeys }}</p>
+            }
+          </div>
+        </details>
+      </fieldset>
+
+      @if (banner(); as banner) {
+        <p class="banner" role="alert" data-testid="sftp-error">{{ banner }}</p>
+      }
+
+      @if (phase() !== 'result') {
+        <div class="actions">
+          <button
+            matButton="filled"
+            type="submit"
+            data-testid="preview-account"
+            [disabled]="busy() || form.invalid"
+          >
+            {{ busy() && phase() !== 'preview' ? 'Previewing…' : 'Preview' }}
+          </button>
+        </div>
+      }
+    </form>
+
+    @if (plan(); as plan) {
+      <section class="panel section" data-testid="preview-plan">
+        <h2 class="section-title">Preview</h2>
+        <dl class="facts">
+          <div>
+            <dt>Bucket</dt>
+            <dd class="mono">{{ plan.bucket }}</dd>
+          </div>
+          <div>
+            <dt>User</dt>
+            <dd>{{ previewActionLabel[plan.userAction] }}</dd>
+          </div>
+        </dl>
+        <div class="dmc-table-wrap">
+          <table class="dmc-table">
+            <caption class="sr-only">
+              Folders that will be created or already exist
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Folder</th>
+                <th scope="col">Path</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (folder of plan.folders; track folder.virtualPath) {
+                <tr>
+                  <td class="mono">{{ folder.name }}</td>
+                  <td class="mono">{{ folder.virtualPath }}</td>
+                  <td>{{ folder.action === 'create' ? 'Create' : 'Already exists' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (plan.warnings.length) {
+          <div class="warnings" role="status" data-testid="preview-warnings">
+            <h3>Warnings</h3>
+            <ul>
+              @for (warning of plan.warnings; track warning) {
+                <li>{{ warning }}</li>
+              }
+            </ul>
+          </div>
+        }
+        <div class="actions">
+          <button
+            matButton="filled"
+            type="button"
+            data-testid="create-account"
+            [disabled]="busy()"
+            (click)="requestCreate()"
+          >
+            {{ busy() ? 'Creating…' : 'Create' }}
+          </button>
+        </div>
+      </section>
+    }
+
+    @if (outcome(); as outcome) {
+      <section class="panel section" data-testid="create-result">
+        <h2 class="section-title">{{ resultHeading[outcome.userAction] }}</h2>
+        <dl class="facts">
+          <div>
+            <dt>User</dt>
+            <dd class="mono">{{ outcome.user }}</dd>
+          </div>
+          <div>
+            <dt>Base</dt>
+            <dd class="mono">{{ outcome.base }}</dd>
+          </div>
+          <div>
+            <dt>Bucket</dt>
+            <dd class="mono">{{ outcome.bucket }}</dd>
+          </div>
+          <div>
+            <dt>Virtual folders added</dt>
+            <dd>{{ outcome.addedVirtualFolders }}</dd>
+          </div>
+          <div>
+            <dt>Verified</dt>
+            <dd>{{ outcome.verified ? 'Yes' : 'No' }}</dd>
+          </div>
+        </dl>
+        @if (outcome.foldersCreated.length) {
+          <div>
+            <h3 class="folder-heading">Created</h3>
+            <ul class="folders">
+              @for (name of outcome.foldersCreated; track name) {
+                <li class="mono">{{ name }}</li>
+              }
+            </ul>
+          </div>
+        }
+        @if (outcome.foldersExisting.length) {
+          <div>
+            <h3 class="folder-heading">Already present</h3>
+            <ul class="folders">
+              @for (name of outcome.foldersExisting; track name) {
+                <li class="mono">{{ name }}</li>
+              }
+            </ul>
+          </div>
+        }
+        @if (outcome.missing?.length) {
+          <p class="banner" role="alert">
+            Verification could not find {{ outcome.missing.join(', ') }}.
+          </p>
+        }
+        <div class="actions">
+          <button matButton="outlined" type="button" (click)="startOver()">Create another</button>
+        </div>
+      </section>
+
+      @if (secret(); as secret) {
+        <section class="panel section secret" data-testid="generated-password">
+          <h2 class="section-title">Generated password</h2>
+          <p id="password-note" class="secret-note">
+            This password is shown only once. It will not be shown again, and it is not stored in
+            this browser. Copy it now.
+          </p>
+          <div class="secret-row">
+            <input
+              #secretInput
+              class="secret-value"
+              type="text"
+              readonly
+              [value]="secret"
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Generated password"
+              aria-describedby="password-note"
+              data-testid="generated-password-value"
+            />
+            <button
+              matButton="outlined"
+              type="button"
+              data-testid="copy-password"
+              (click)="copyPassword(secretInput)"
+            >
+              {{ copied() ? 'Copied' : 'Copy' }}
+            </button>
+          </div>
+          @if (copyFailed()) {
+            <p class="field-error" role="alert">Select the password and copy it manually.</p>
+          }
+        </section>
+      }
+    }
+  }
+</div>

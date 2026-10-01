@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
 import { LOAD_CONFIG_API, loadConfigApiFactory } from './core/api/load-config-api';
+import { SFTP_ACCOUNT_API, sftpAccountApiFactory } from './core/api/sftp-account-api';
 import { RUNTIME_CONFIG } from './core/config/runtime-config';
 
 export const appConfig: ApplicationConfig = {
@@ -16,6 +17,11 @@ export const appConfig: ApplicationConfig = {
     {
       provide: LOAD_CONFIG_API,
       useFactory: loadConfigApiFactory,
+      deps: [HttpClient, RUNTIME_CONFIG],
+    },
+    {
+      provide: SFTP_ACCOUNT_API,
+      useFactory: sftpAccountApiFactory,
       deps: [HttpClient, RUNTIME_CONFIG],
     },
   ],

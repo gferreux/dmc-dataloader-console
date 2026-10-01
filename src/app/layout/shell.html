@@ -10,9 +10,18 @@
       <span class="product">Data loader</span>
     </a>
     <nav aria-label="Primary">
-      <a class="nav-item" routerLink="/load-configs" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }">
+      <a
+        class="nav-item"
+        routerLink="/load-configs"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: false }"
+      >
         <mat-icon>schema</mat-icon>
         Import configs
+      </a>
+      <a class="nav-item" routerLink="/sftp-accounts" routerLinkActive="active">
+        <mat-icon>vpn_key</mat-icon>
+        SFTP accounts
       </a>
     </nav>
   </mat-sidenav>
