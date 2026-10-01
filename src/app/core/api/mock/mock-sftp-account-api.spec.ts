@@ -1,6 +1,12 @@
 import { firstValueFrom } from 'rxjs';
 
-import { MOCK_SFTP_BASE, MOCK_SFTP_USER, SFTP_BUCKETS } from '../../models/sftp-account.model';
+import {
+  MOCK_SFTP_BASE,
+  MOCK_SFTP_USER,
+  SFTP_BUCKETS,
+  SFTP_WARNING_KEYS_IGNORED,
+  SFTP_WARNING_PASSWORD_KEPT,
+} from '../../models/sftp-account.model';
 import { ApiException } from '../api-error';
 import { MockSftpAccountApi } from './mock-sftp-account-api';
 
@@ -34,6 +40,7 @@ describe('MockSftpAccountApi', () => {
       api.preview({ user: MOCK_SFTP_USER, base: 'extra', clientType: 'publisher' }),
     );
     expect(plan.userAction).toBe('update');
+    expect(plan.warnings).toEqual([SFTP_WARNING_PASSWORD_KEPT]);
     expect(plan.bucket).toBe(SFTP_BUCKETS.publisher);
     expect(plan.folders.map((folder) => folder.virtualPath)).toEqual([
       '/extra/optin',
@@ -41,6 +48,22 @@ describe('MockSftpAccountApi', () => {
       '/extra/stop',
     ]);
     expect(plan.folders.every((folder) => folder.action === 'create')).toBe(true);
+
+    const fresh = await firstValueFrom(
+      api.preview({ user: 'new_shop', base: 'paris', clientType: 'advertiser' }),
+    );
+    expect(fresh.userAction).toBe('create');
+    expect(fresh.warnings).toEqual([]);
+
+    const withKeys = await firstValueFrom(
+      api.preview({
+        user: MOCK_SFTP_USER,
+        base: 'extra',
+        clientType: 'publisher',
+        publicKeys: ['ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample'],
+      }),
+    );
+    expect(withKeys.warnings).toEqual([SFTP_WARNING_PASSWORD_KEPT, SFTP_WARNING_KEYS_IGNORED]);
 
     const created = await firstValueFrom(
       api.create({
@@ -65,9 +88,15 @@ describe('MockSftpAccountApi', () => {
 
   it('rejects a bucket mismatch, an invalid name, and a server that is not configured', async () => {
     const api = new MockSftpAccountApi();
-    await expect(
-      firstValueFrom(api.preview({ user: MOCK_SFTP_USER, base: 'shop', clientType: 'advertiser' })),
-    ).rejects.toMatchObject({ status: 409 });
+    const mismatch = { user: MOCK_SFTP_USER, base: 'shop', clientType: 'advertiser' as const };
+    await expect(firstValueFrom(api.preview(mismatch))).rejects.toMatchObject({
+      status: 409,
+      code: 'bucket_mismatch',
+    });
+    await expect(firstValueFrom(api.create(mismatch))).rejects.toMatchObject({
+      status: 409,
+      code: 'bucket_mismatch',
+    });
 
     await expect(
       firstValueFrom(api.create({ user: 'Bad', base: 'shop', clientType: 'publisher' })),
@@ -75,8 +104,18 @@ describe('MockSftpAccountApi', () => {
 
     const offline = new MockSftpAccountApi({ configured: false });
     expect((await firstValueFrom(offline.config())).configured).toBe(false);
-    await expect(
-      firstValueFrom(offline.preview({ user: 'acme', base: 'acme', clientType: 'publisher' })),
-    ).rejects.toMatchObject({ status: 503 });
+    const body = { user: 'acme', base: 'acme', clientType: 'publisher' as const };
+    await expect(firstValueFrom(offline.lookup('acme'))).rejects.toMatchObject({
+      status: 503,
+      code: 'sftpgo_unconfigured',
+    });
+    await expect(firstValueFrom(offline.preview(body))).rejects.toMatchObject({
+      status: 503,
+      code: 'sftpgo_unconfigured',
+    });
+    await expect(firstValueFrom(offline.create(body))).rejects.toMatchObject({
+      status: 503,
+      code: 'sftpgo_unconfigured',
+    });
   });
 });

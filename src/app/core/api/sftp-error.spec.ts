@@ -15,7 +15,11 @@ describe('sftpErrorView', () => {
 
   it('maps a bucket mismatch to a readable message', () => {
     const view = sftpErrorView(
-      new ApiException(409, 'conflict', 'user demo_retail is on bucket other, expected publishers'),
+      new ApiException(
+        409,
+        'bucket_mismatch',
+        'user demo_retail is on bucket other, expected publishers',
+      ),
     );
     expect(view.message).toContain('different bucket');
     expect(view.message).toContain('expected publishers');

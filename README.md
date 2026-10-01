@@ -116,11 +116,12 @@ The create and edit flow follows `dmc-dataloader-api` `api/openapi.yaml` (`LoadC
 
 The SFTP accounts screen creates an SFTPGo user, or adds a client base to an existing one. It calls the same API under `/api/v1`:
 
-- `GET /api/v1/sftp-accounts/config` returns `{configured, clientTypes, buckets}`. Publisher subfolders are `optin`, `optout`, and `stop`. Advertiser subfolders are `blacklists`, `customers`, `stores`, and `sales`. When `configured` is false, the screen explains that SFTPGo is not configured and does not show the form.
+- `GET /api/v1/sftp-accounts/config` returns 200 `{configured, clientTypes, buckets}` even when SFTPGo is not set up. `configured: false` hides the form and explains that SFTPGo is not configured. Publisher subfolders are `optin`, `optout`, and `stop`. Advertiser subfolders are `blacklists`, `customers`, `stores`, and `sales`.
 - `GET /api/v1/sftp-accounts/{username}` returns `{username, exists, bucket?, virtualFolders, bases}`. An unknown user is 200 with `exists: false`.
-- `POST /api/v1/sftp-accounts/preview` is a dry run. The body is `{user, base, clientType, passwordMode?, publicKeys?}`. The response describes the bucket, each folder as `create` or `exists`, and the user action `create`, `update`, or `unchanged`.
+- `POST /api/v1/sftp-accounts/preview` is a dry run. The body is `{user, base, clientType, passwordMode?, publicKeys?}`. A 200 plan describes the bucket, each folder as `create` or `exists`, and the user action `create`, `update`, or `unchanged`. An existing user includes the warning `existing password is kept`. Public keys sent for an existing user also include `public keys are only applied when the user is created`.
 - `POST /api/v1/sftp-accounts` uses the same body. The response reports folders created and already present, `userAction` of `created`, `updated`, or `unchanged`, and `verified`. Status 201 means the user was created. A generated password is returned only on that create, shown once, and kept out of the URL, logs, and browser storage.
-- 422 is a validation error, 409 is a bucket mismatch, 502 is an SFTPGo error, and 503 means SFTPGo is not configured. The screen shows those as inline messages. The error envelope is the existing `{error: {code, message, details}}` shape.
+- A bucket mismatch is HTTP 409 with error code `bucket_mismatch` on both preview and create. It is never a warning inside a 200 plan. The screen shows it as an inline error, including when Preview is the call that failed.
+- 422 is a validation error, 502 is an SFTPGo error, and 503 (`sftpgo_unconfigured`) means SFTPGo is not configured. Config itself stays 200 in that case; lookup, preview, and create return 503. The screen shows those as inline messages. The error envelope is the existing `{error: {code, message, details}}` shape.
 
 ## Open questions
 

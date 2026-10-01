@@ -224,6 +224,9 @@ export class SftpAccounts {
           this.busy.set(false);
         },
         error: (error) => {
+          this.plan.set(null);
+          this.planned = null;
+          this.phase.set('form');
           this.busy.set(false);
           this.applyError(error);
         },

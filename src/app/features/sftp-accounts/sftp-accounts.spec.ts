@@ -7,7 +7,12 @@ import { ApiException } from '../../core/api/api-error';
 import { MockSftpAccountApi } from '../../core/api/mock/mock-sftp-account-api';
 import { SFTP_ACCOUNT_API, SftpAccountApi } from '../../core/api/sftp-account-api';
 import { RUNTIME_CONFIG } from '../../core/config/runtime-config';
-import { SftpAccountPreview, SftpAccountRequest } from '../../core/models/sftp-account.model';
+import {
+  SFTP_WARNING_KEYS_IGNORED,
+  SFTP_WARNING_PASSWORD_KEPT,
+  SftpAccountPreview,
+  SftpAccountRequest,
+} from '../../core/models/sftp-account.model';
 import { SftpAccounts } from './sftp-accounts';
 
 describe('SftpAccounts', () => {
@@ -152,22 +157,62 @@ describe('SftpAccounts', () => {
     expect(fixture.nativeElement.querySelector('form')).toBeNull();
   });
 
-  it('shows inline errors for bucket mismatch, SFTPGo failure, and validation', async () => {
-    const conflict = new MockSftpAccountApi();
-    conflict.preview = () =>
-      throwError(
-        () => new ApiException(409, 'conflict', 'user demo_retail is on bucket other, expected x'),
-      );
-    const { fixture } = await setup(conflict);
-    fillReady(fixture.componentInstance);
+  it('shows a bucket mismatch inline when preview is rejected', async () => {
+    const { fixture } = await setup();
+    const component = fixture.componentInstance;
+    component.form.controls.user.setValue('demo_retail');
+    component.form.controls.base.setValue('shop');
+    component.selectClient('advertiser');
     fixture.detectChanges();
+
     click(fixture.nativeElement, '[data-testid="preview-account"]');
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
+
     const banner = fixture.nativeElement.querySelector('[data-testid="sftp-error"]');
     expect(banner?.textContent).toContain('different bucket');
-    expect(banner?.textContent).toContain('expected x');
+    expect(banner?.textContent).toContain('expected');
+    expect(fixture.nativeElement.querySelector('[data-testid="preview-plan"]')).toBeNull();
+  });
+
+  it('shows preview warnings and keeps that panel when create reports a bucket mismatch', async () => {
+    const api = new MockSftpAccountApi();
+    api.create = () =>
+      throwError(
+        () =>
+          new ApiException(
+            409,
+            'bucket_mismatch',
+            'user demo_retail is on bucket other, expected publishers',
+          ),
+      );
+    const { fixture } = await setup(api);
+    const component = fixture.componentInstance;
+    component.form.controls.user.setValue('demo_retail');
+    component.form.controls.base.setValue('extra');
+    component.form.controls.publicKeys.setValue('ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample');
+    component.selectClient('publisher');
+    fixture.detectChanges();
+
+    click(fixture.nativeElement, '[data-testid="preview-account"]');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const warnings = fixture.nativeElement.querySelector('[data-testid="preview-warnings"]');
+    expect(warnings?.textContent).toContain(SFTP_WARNING_PASSWORD_KEPT);
+    expect(warnings?.textContent).toContain(SFTP_WARNING_KEYS_IGNORED);
+
+    click(fixture.nativeElement, '[data-testid="create-account"]');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const banner = fixture.nativeElement.querySelector('[data-testid="sftp-error"]');
+    expect(banner?.textContent).toContain('different bucket');
+    expect(fixture.nativeElement.querySelector('[data-testid="preview-plan"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-testid="create-result"]')).toBeNull();
   });
 
   it('shows an inline SFTPGo error and a field validation error', async () => {

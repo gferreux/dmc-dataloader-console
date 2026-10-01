@@ -87,5 +87,9 @@ export const SFTP_BUCKETS: SftpBuckets = {
 
 export const SFTP_NAME_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 
+/** Preview notes returned for an existing user. They are not errors. */
+export const SFTP_WARNING_PASSWORD_KEPT = 'existing password is kept';
+export const SFTP_WARNING_KEYS_IGNORED = 'public keys are only applied when the user is created';
+
 export const MOCK_SFTP_USER = 'demo_retail';
 export const MOCK_SFTP_BASE = 'demo_fr';

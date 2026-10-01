@@ -228,7 +228,8 @@
           </table>
         </div>
         @if (plan.warnings.length) {
-          <div class="warnings" role="status">
+          <div class="warnings" role="status" data-testid="preview-warnings">
+            <h3>Warnings</h3>
             <ul>
               @for (warning of plan.warnings; track warning) {
                 <li>{{ warning }}</li>

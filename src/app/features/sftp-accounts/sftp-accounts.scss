@@ -132,8 +132,12 @@
   font: var(--body-sm-regular);
 }
 
+.warnings h3 {
+  font: var(--body-sm-semibold);
+}
+
 .warnings ul {
-  margin: 0;
+  margin: var(--dim-xs) 0 0;
   padding-left: 1.1rem;
 }
 

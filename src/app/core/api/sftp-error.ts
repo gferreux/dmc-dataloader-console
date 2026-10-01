@@ -37,11 +37,7 @@ export function sftpErrorView(error: unknown): SftpErrorView {
         notConfigured: false,
       };
     case 409:
-      return {
-        message: detail(BUCKET_MISMATCH, exception),
-        fields: {},
-        notConfigured: false,
-      };
+      return bucketView(exception);
     case 502:
       return {
         message: SFTPGO_FAILED,
@@ -55,12 +51,23 @@ export function sftpErrorView(error: unknown): SftpErrorView {
         notConfigured: true,
       };
     default:
+      if (exception.code === 'bucket_mismatch') {
+        return bucketView(exception);
+      }
       return {
         message: readable(exception, 'Request failed.'),
         fields: {},
         notConfigured: false,
       };
   }
+}
+
+function bucketView(exception: ApiException): SftpErrorView {
+  return {
+    message: detail(BUCKET_MISMATCH, exception),
+    fields: {},
+    notConfigured: false,
+  };
 }
 
 function detail(fallback: string, exception: ApiException): string {

@@ -6,6 +6,8 @@ import {
   SFTP_BUCKETS,
   SFTP_CLIENT_TYPES,
   SFTP_NAME_PATTERN,
+  SFTP_WARNING_KEYS_IGNORED,
+  SFTP_WARNING_PASSWORD_KEPT,
   SftpAccountConfig,
   SftpAccountLookup,
   SftpAccountPreview,
@@ -154,7 +156,7 @@ export class MockSftpAccountApi implements SftpAccountApi {
 
   private plan(body: SftpAccountRequest): Planned | ApiException {
     if (!this.configured) {
-      return new ApiException(503, 'service_unavailable', 'SFTPGo is not configured');
+      return unconfigured();
     }
     const issues = validate(body);
     if (issues.length) {
@@ -169,11 +171,7 @@ export class MockSftpAccountApi implements SftpAccountApi {
     const publicKeys = (body.publicKeys ?? []).map((key) => key.trim()).filter(Boolean);
     const user = this.users.get(userName);
     if (user && user.bucket !== bucket) {
-      return new ApiException(
-        409,
-        'conflict',
-        `user ${userName} is on bucket ${user.bucket}, expected ${bucket}`,
-      );
+      return bucketMismatch(`user ${userName} is on bucket ${user.bucket}, expected ${bucket}`);
     }
 
     const present = new Set((user?.virtualFolders ?? []).map((folder) => folder.virtualPath));
@@ -183,9 +181,7 @@ export class MockSftpAccountApi implements SftpAccountApi {
       const virtualPath = `/${baseName}/${sub}`;
       const existing = this.folders.get(name);
       if (existing && existing.bucket !== bucket) {
-        return new ApiException(
-          409,
-          'conflict',
+        return bucketMismatch(
           `folder ${name} exists on bucket ${existing.bucket}, expected ${bucket}`,
         );
       }
@@ -206,8 +202,11 @@ export class MockSftpAccountApi implements SftpAccountApi {
     }
 
     const warnings: string[] = [];
-    if (user && (passwordMode === 'generate' || publicKeys.length > 0)) {
-      warnings.push('Password and public keys are only applied when the user is created.');
+    if (userAction !== 'create') {
+      warnings.push(SFTP_WARNING_PASSWORD_KEPT);
+      if (publicKeys.length > 0) {
+        warnings.push(SFTP_WARNING_KEYS_IGNORED);
+      }
     }
 
     return {
@@ -243,9 +242,7 @@ export class MockSftpAccountApi implements SftpAccountApi {
   }
 
   private unavailable(): Observable<never> {
-    return throwError(
-      () => new ApiException(503, 'service_unavailable', 'SFTPGo is not configured'),
-    );
+    return throwError(() => unconfigured());
   }
 }
 
@@ -285,6 +282,18 @@ function validate(body: SftpAccountRequest): { field: string; message: string }[
     });
   }
   return issues;
+}
+
+function bucketMismatch(message: string): ApiException {
+  return new ApiException(409, 'bucket_mismatch', message);
+}
+
+function unconfigured(): ApiException {
+  return new ApiException(
+    503,
+    'sftpgo_unconfigured',
+    'sftpgo is not configured: set SFTPGO_URL and SFTPGO_API_KEY',
+  );
 }
 
 function past(action: SftpPreviewUserAction): SftpAccountResult['userAction'] {
