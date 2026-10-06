@@ -128,3 +128,57 @@ The SFTP accounts screen creates an SFTPGo user, or adds a client base to an exi
 - Whether mapping order needs an explicit field because Firestore maps are unordered.
 - Whether IAP identity should come from `/whoami` on this container or from a future `/api/v1/me`.
 - Whether the console should gain a way to edit `deactivated`, `incremental`, and `isPartitionKey` once the API models them. Today those fields are preserved server-side and are not readable.
+
+
+## Local Dev:
+
+# Configs:
+
+- `package.json`:
+```
+  "name": "dmc-dataloader-console",
+  ...
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve --host 0.0.0.0 --port 3002",
+    "start:mock": "ng serve --host 0.0.0.0 --port 3002",
+    ...
+```
+
+- `runtime-config.json`:
+```
+{
+  "apiBaseUrl": "",
+  "useMock": false
+}
+
+```
+
+- `proxy.conf.json`:
+```
+{
+  "/api": {
+    "target": "http://localhost:3001",
+    "secure": false,
+    "changeOrigin": true
+  }
+}
+
+```
+
+
+# Commands:
+
+- Console:
+
+```
+npm start
+```
+
+- [Docker]:
+```
+docker run --rm -p 3002:3002 \
+  -e USE_MOCK=false \
+  -e API_BASE_URL= \
+  dmc-dataloader-console
+```
